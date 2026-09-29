@@ -20,7 +20,7 @@
       <% end %>
     </div>
     <template data-nested-form-target="template">
-      <%= f.fields_for :exchange_reasons, ExchangeReason.new(category: "voluntary", resolutions: %w[store_credit], position: 99), child_index: "NEW_RECORD" do |rf| %>
+      <%= f.fields_for :exchange_reasons, ExchangeReason.new(category: "voluntary", resolutions: %w[coupon], position: 99), child_index: "NEW_RECORD" do |rf| %>
         <%= render "reason_fields", f: rf %>
       <% end %>
     </template>

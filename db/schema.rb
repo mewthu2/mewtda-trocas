@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -125,19 +125,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_000002) do
     t.boolean "free_shipping_first_attempt", default: true, null: false
     t.decimal "free_shipping_above", precision: 10, scale: 2
     t.decimal "customer_shipping_flat_fee", precision: 10, scale: 2
-    t.string "price_basis", default: "paid", null: false
-    t.string "higher_price_action", default: "charge", null: false
-    t.string "lower_price_action", default: "credit", null: false
-    t.string "reserve_stock_on", default: "approval", null: false
-    t.integer "reserve_hours", default: 72, null: false
     t.boolean "auto_approve", default: false, null: false
     t.decimal "auto_approve_max_value", precision: 10, scale: 2
     t.integer "abuse_max_requests", default: 3, null: false
     t.integer "abuse_window_days", default: 90, null: false
     t.string "resolve_on", default: "approval", null: false
     t.boolean "refund_original_shipping", default: false, null: false
-    t.string "credit_type", default: "coupon", null: false
-    t.boolean "credit_combines_with_discounts", default: false, null: false
     t.boolean "credit_link_customer", default: true, null: false
     t.boolean "email_enabled", default: true, null: false
     t.boolean "whatsapp_enabled", default: false, null: false
@@ -160,6 +153,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_000002) do
     t.string "support_email"
     t.string "support_whatsapp"
     t.string "support_hours"
+    t.string "refund_methods", default: ["estorno", "pix", "transferencia"], null: false, array: true
+    t.boolean "coupon_combines_with_discounts", default: false, null: false
     t.index ["client_id"], name: "index_exchange_configs_on_client_id", unique: true
     t.index ["slug"], name: "index_exchange_configs_on_slug", unique: true
   end
@@ -199,7 +194,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_000002) do
     t.string "method", null: false
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.string "status", default: "pending", null: false
-    t.string "shopify_refund_id"
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -224,11 +218,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_000002) do
     t.string "shopify_line_item_id"
     t.string "shopify_product_id"
     t.string "shopify_variant_id"
-    t.decimal "current_price", precision: 10, scale: 2
     t.integer "weight_g"
-    t.string "new_variant_id"
-    t.string "new_variant_title"
-    t.decimal "new_variant_price", precision: 10, scale: 2
     t.index ["exchange_request_id"], name: "index_exchange_request_items_on_exchange_request_id"
   end
 
@@ -259,17 +249,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_000002) do
     t.boolean "flagged_for_review", default: false, null: false
     t.string "review_reasons", default: [], null: false, array: true
     t.text "rejection_reason"
-    t.decimal "price_difference", precision: 10, scale: 2, default: "0.0", null: false
-    t.string "credit_kind"
     t.decimal "credit_amount", precision: 10, scale: 2
-    t.string "replacement_draft_order_id"
-    t.string "replacement_order_name"
-    t.string "invoice_url"
-    t.datetime "stock_reserved_until"
     t.jsonb "refund_details", default: {}, null: false
     t.datetime "approved_at"
     t.datetime "received_at"
     t.datetime "completed_at"
+    t.string "refund_method"
     t.index ["client_id", "status"], name: "index_exchange_requests_on_client_id_and_status"
     t.index ["client_id"], name: "index_exchange_requests_on_client_id"
     t.index ["public_code"], name: "index_exchange_requests_on_public_code", unique: true

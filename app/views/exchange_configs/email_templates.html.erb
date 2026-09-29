@@ -7,7 +7,7 @@
     [ "rejected", "Não aprovada", "block", "Quando a equipe rejeita. Use {{rejection_reason}} para explicar." ],
     [ "label_issued", "Postagem liberada", "local_shipping", "Quando o código de postagem/coleta é gerado." ],
     [ "received", "Produto recebido", "inventory", "Quando a equipe confere o produto devolvido." ],
-    [ "refunded", "Reembolso", "currency_exchange", "Quando um reembolso é feito ou concluído." ],
+    [ "refunded", "Dinheiro devolvido", "currency_exchange", "Quando a equipe marca a devolução como concluída." ],
     [ "completed", "Concluída", "task_alt", "Quando a solicitação é encerrada." ]
   ]
   variables = Exchange::MessageVariables::NAMES.map { |n| "{{#{n}}}" }.join(", ")
@@ -23,7 +23,7 @@
     <%= m3_switch f, :tracking_page_enabled, "Página de acompanhamento", "O cliente vê o andamento pelo link {{tracking_url}}." %>
     <div class="field-row">
       <%= m3_field f, :analysis_sla_days, "Prazo de análise (dias úteis)", as: :number_field, min: 0 %>
-      <%= m3_field f, :refund_sla_days, "Prazo de reembolso (dias úteis)", as: :number_field, min: 0 %>
+      <%= m3_field f, :refund_sla_days, "Prazo de devolução do dinheiro (dias úteis)", as: :number_field, min: 0 %>
     </div>
     <%= hidden_field_tag :return_to, "email_templates" %>
     <div class="form-actions">

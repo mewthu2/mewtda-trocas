@@ -2,7 +2,7 @@ module Exchange
   # Variáveis disponíveis nos textos de e-mail e WhatsApp.
   class MessageVariables
     NAMES = %w[customer_name order_number request_code tracking_url coupon_code credit_amount return_code
-               return_expires_at refund_amount invoice_url rejection_reason analysis_sla_days refund_sla_days].freeze
+               return_expires_at refund_amount refund_method rejection_reason analysis_sla_days refund_sla_days].freeze
 
     def initialize(request)
       @request = request
@@ -21,7 +21,7 @@ module Exchange
         "return_code" => r.return_authorization_code.to_s,
         "return_expires_at" => r.return_expires_at ? I18n.l(r.return_expires_at.to_date) : "",
         "refund_amount" => money(r.exchange_refunds.sum(&:amount)),
-        "invoice_url" => r.invoice_url.to_s,
+        "refund_method" => r.refund_method_label.to_s,
         "rejection_reason" => r.rejection_reason.to_s,
         "analysis_sla_days" => config&.analysis_sla_days.to_s,
         "refund_sla_days" => config&.refund_sla_days.to_s

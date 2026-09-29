@@ -4,7 +4,7 @@ import { Controller } from "@hotwired/stimulus"
 // escolhido abre só o painel dele (resultados, perguntas, foto, condições).
 // Campos dos painéis escondidos ficam desabilitados para não serem enviados.
 export default class extends Controller {
-  static targets = ["toggle", "options", "reason", "panel", "variant", "photoLabel"]
+  static targets = ["toggle", "options", "reason", "panel", "photoLabel"]
 
   connect() {
     this.toggle()
@@ -26,19 +26,7 @@ export default class extends Controller {
       panel.hidden = !show
       panel.querySelectorAll("input, select, textarea").forEach((field) => (field.disabled = !show))
     })
-    this.resolutionChanged()
-  }
-
-  resolutionChanged() {
-    this.variantTargets.forEach((wrapper) => {
-      const panel = wrapper.closest("[data-reason]")
-      const checked = panel.querySelector("input[type=radio]:checked")
-      const show = !panel.hidden && checked?.value === "other_variant"
-      wrapper.hidden = !show
-      const select = wrapper.querySelector("select")
-      select.disabled = !show
-      select.required = show
-    })
+    this.element.dispatchEvent(new Event("change", { bubbles: true }))
   }
 
   photoChosen(event) {

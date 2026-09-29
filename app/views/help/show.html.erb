@@ -7,7 +7,7 @@
     [ "configuracao", "Configuração, aba por aba" ],
     [ "correios", "Contrato dos Correios" ],
     [ "emails", "E-mails e WhatsApp" ],
-    [ "reembolsos", "Reembolsos e créditos" ],
+    [ "reembolsos", "Cupom e devolução do dinheiro" ],
     [ "lei", "O que a lei exige" ],
     [ "shopify", "Permissões da Shopify" ],
     [ "duvidas", "Dúvidas frequentes" ]
@@ -69,7 +69,7 @@
         <li><strong>Aprovação:</strong> casos simples podem ser aprovados sozinhos (se você ligar a aprovação automática). Defeito, avaria, item errado, fotos, valores altos e clientes com muitas solicitações vão para análise humana.</li>
         <li><strong>Envio de volta:</strong> ao aprovar, o sistema gera o código de postagem nos Correios (com contrato ativo) e envia ao cliente. Sem contrato, você informa o código manualmente ou usa as instruções configuradas.</li>
         <li><strong>Conferência:</strong> quando o produto chega, clique em <em>Produto recebido</em>.</li>
-        <li><strong>Resultado:</strong> crédito, reembolso ou pedido da nova peça são gerados na Shopify na aprovação ou só depois da conferência — você escolhe em <em>Resultados e financeiro</em>.</li>
+        <li><strong>Resultado:</strong> o cliente recebe um <strong>cupom</strong> (gerado na Shopify) para comprar outra peça, ou a <strong>devolução do dinheiro</strong> por estorno, Pix ou transferência, feita pela equipe com o comprovante anexado. Isso acontece na aprovação ou só depois da conferência — você escolhe em <em>Aprovação, cupom e devolução</em>.</li>
       </ol>
       <p class="body-small muted">O cliente acompanha tudo pelo link de acompanhamento que vai em todos os e-mails (protocolo de 8 letras).</p>
     </section>
@@ -78,11 +78,11 @@
       <h2 class="title-medium card__title"><%= icon "inbox" %> Tratando as solicitações</h2>
       <ul class="help-list">
         <li><strong>Lista:</strong> filtre por status, busque por pedido, protocolo, nome ou e-mail. O ícone <%= icon "flag", class: "msr--sm" %> marca solicitações com valor alto ou suspeita de abuso.</li>
-        <li><strong>Aprovar:</strong> gera a postagem reversa e, se configurado, o crédito/reembolso/nova peça.</li>
+        <li><strong>Aprovar:</strong> gera a postagem reversa e, se configurado, o cupom e a devolução pendente.</li>
         <li><strong>Rejeitar:</strong> escreva o motivo — ele vai no e-mail/WhatsApp para o cliente (variável <code>{{rejection_reason}}</code>).</li>
         <li><strong>Envio de volta:</strong> gere um novo código nos Correios ou informe códigos manualmente. O cliente é avisado na hora.</li>
-        <li><strong>Produto recebido:</strong> registra a conferência. Se a loja resolve só depois de conferir, o resultado é gerado e a solicitação é concluída automaticamente.</li>
-        <li><strong>Reembolsos:</strong> acompanhe e altere o status (pendente, em processamento, concluído, falhou). Pix e boleto são pagos pela equipe e registrados aqui.</li>
+        <li><strong>Produto recebido:</strong> registra a conferência. Se a loja resolve só depois de conferir, o cupom e a devolução são gerados agora.</li>
+        <li><strong>Devolução do dinheiro:</strong> veja os dados bancários que o cliente informou, faça o estorno/Pix/transferência, anexe o comprovante e marque como <em>concluído</em>. Com o produto recebido e tudo devolvido, a solicitação é concluída sozinha.</li>
         <li><strong>Histórico:</strong> tudo o que aconteceu fica registrado. Eventos com <%= icon "public", class: "msr--sm" %> aparecem para o cliente.</li>
       </ul>
     </section>
@@ -110,14 +110,12 @@
         (uma por linha — o cliente responde ao escolher o motivo). Motivos legais têm itens travados <%= icon "lock", class: "msr--sm" %>.
       </p>
 
-      <h3 class="title-small">Resultados e financeiro</h3>
+      <h3 class="title-small">Aprovação, cupom e devolução</h3>
       <ul class="help-list">
         <li><strong>Aprovação automática:</strong> com limite de valor e detecção de abuso (X solicitações em Y dias do mesmo e-mail).</li>
-        <li><strong>Quando liberar:</strong> na aprovação ou só após conferir o produto.</li>
-        <li><strong>Diferença de preço:</strong> compare pelo preço pago ou atual. Nova peça mais cara: cobre o complemento (o cliente recebe a fatura da Shopify) ou absorva. Mais barata: devolva, vire crédito ou não devolva.</li>
-        <li><strong>Estoque:</strong> reserve a nova peça ao abrir, ao aprovar ou após conferir, com expiração em horas.</li>
-        <li><strong>Crédito:</strong> cupom de uso único, vale-presente ou crédito na conta do cliente; validade, vínculo ao cliente e se acumula com descontos.</li>
-        <li><strong>Reembolso:</strong> se devolve o frete da compra quando o pedido inteiro volta (sempre feito no arrependimento).</li>
+        <li><strong>Quando gerar:</strong> na aprovação ou só após conferir o produto.</li>
+        <li><strong>Cupom:</strong> validade, vínculo ao cliente e se acumula com outros descontos.</li>
+        <li><strong>Devolução do dinheiro:</strong> quais formas o cliente pode escolher — estorno no meio de pagamento da compra, Pix ou transferência — e o prazo prometido.</li>
       </ul>
 
       <h3 class="title-small">Frete reverso</h3>
@@ -159,10 +157,11 @@
     <section id="reembolsos" class="card">
       <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Reembolsos e créditos</h2>
       <ul class="help-list">
-        <li><strong>Cartão:</strong> estornado automaticamente pela Shopify, só dos itens devolvidos.</li>
-        <li><strong>Pix e boleto:</strong> o cliente informa a chave Pix; o sistema registra o reembolso como <em>pendente</em>. Faça o pagamento e mude o status para <em>concluído</em> — o cliente é avisado.</li>
-        <li><strong>Falhou na Shopify?</strong> O reembolso aparece como <em>falhou</em> com o motivo; resolva na Shopify e atualize o status.</li>
-        <li><strong>Crédito:</strong> o código aparece na solicitação e vai para o cliente no e-mail de aprovação (<code>{{coupon_code}}</code>).</li>
+        <li><strong>Cupom:</strong> gerado automaticamente na Shopify, de uso único, no valor dos itens. Aparece na solicitação e na página de acompanhamento do cliente.</li>
+        <li><strong>Devolução do dinheiro:</strong> não é feita pela Shopify. O sistema registra a devolução como <em>pendente</em> com a forma que o cliente escolheu.</li>
+        <li><strong>Estorno:</strong> faça no gateway/adquirente (cartão) e marque como concluído.</li>
+        <li><strong>Pix e transferência:</strong> o cliente informa chave Pix ou banco/agência/conta/CPF. Faça o pagamento, <strong>anexe o comprovante</strong> (imagem ou PDF) e marque como concluído — o cliente é avisado e vê o comprovante no acompanhamento.</li>
+        <li><strong>Frete pago pelo cliente:</strong> é descontado do cupom e, se sobrar, da devolução.</li>
       </ul>
     </section>
 
@@ -179,7 +178,7 @@
       <h2 class="title-medium card__title"><%= icon "storefront" %> Permissões da Shopify</h2>
       <p class="body-medium">O token do app da loja precisa destes acessos:</p>
       <div class="chip-row">
-        <% %w[read_orders read_products read_customers write_discounts write_draft_orders write_orders write_gift_cards write_store_credit_account_transactions].each do |scope| %>
+        <% %w[read_orders read_products read_customers write_discounts].each do |scope| %>
           <code class="assist-chip assist-chip--small"><%= scope %></code>
         <% end %>
       </div>
@@ -190,7 +189,7 @@
       <h2 class="title-medium card__title"><%= icon "quiz" %> Dúvidas frequentes</h2>
       <details class="disclosure"><summary class="title-small">O cliente diz que o pedido não é encontrado.</summary><p class="body-medium">Ele precisa usar o mesmo e-mail da compra e o número do pedido (ex.: #1001). Depois de 10 tentativas em 5 minutos a busca é bloqueada temporariamente.</p></details>
       <details class="disclosure"><summary class="title-small">Um item aparece como “Prazo encerrado”.</summary><p class="body-medium">Nenhum motivo está dentro do prazo para ele. Confira as exceções em Prazos e elegibilidade.</p></details>
-      <details class="disclosure"><summary class="title-small">“Outro tamanho/cor” não aparece.</summary><p class="body-medium">Só aparece quando o produto tem outra variante disponível para venda na Shopify.</p></details>
+      <details class="disclosure"><summary class="title-small">O cliente quer outro tamanho ou cor.</summary><p class="body-medium">Ele recebe um cupom no valor da peça e faz o novo pedido na loja com ele.</p></details>
       <details class="disclosure"><summary class="title-small">Os e-mails não estão chegando.</summary><p class="body-medium">Confira se o domínio está “Verificado” em Comunicação e se o canal E-mail está ligado.</p></details>
       <details class="disclosure"><summary class="title-small">O código dos Correios não foi gerado.</summary><p class="body-medium">Veja o erro no histórico da solicitação, clique em Testar conexão no Frete reverso e, se preciso, informe o código manualmente.</p></details>
     </section>

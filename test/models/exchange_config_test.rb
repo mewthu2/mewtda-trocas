@@ -14,7 +14,8 @@ class ExchangeConfigTest < ActiveSupport::TestCase
     config = create_config(create_client)
 
     assert_equal ExchangeConfig::DEFAULT_EMAIL_CONTENT[:approved][:subject], config.approved_email_subject
-    assert_includes config.approved_email_body, "{{coupon_code}}"
+    assert_includes config.approved_email_body, "{{tracking_url}}"
+    assert_includes config.refunded_email_body, "{{refund_method}}"
     assert_includes config.label_issued_email_body, "{{return_code}}"
     assert_includes config.whatsapp_body("requested"), "{{tracking_url}}"
   end

@@ -27,7 +27,7 @@
         </div>
       </details>
       <%= button_to exchange_request_path(er), method: :patch, params: { status: "approved" }, class: "btn btn--filled",
-                    form: { data: { turbo_confirm: "Aprovar? #{config&.resolve_on == 'approval' ? 'Crédito, reembolso e nova peça serão gerados agora.' : 'O resultado será gerado após a conferência do produto.'}" } } do %>
+                    form: { data: { turbo_confirm: "Aprovar? #{config&.resolve_on == 'approval' ? 'O cupom e a devolução serão gerados agora.' : 'O cupom e a devolução serão gerados após a conferência do produto.'}" } } do %>
         <%= icon "check" %> Aprovar
       <% end %>
     <% elsif er.approved? %>
@@ -83,9 +83,6 @@
               <div class="chip-row">
                 <span class="kind-chip kind-chip--<%= item.kind %>"><%= icon(item.troca? ? "swap_horiz" : "undo") %><%= item.resolution_label %></span>
                 <span class="assist-chip assist-chip--small"><%= item.reason_label %></span>
-                <% if item.new_variant_title.present? %>
-                  <span class="assist-chip assist-chip--small"><%= icon "arrow_forward", class: "msr--sm" %> <%= item.new_variant_title %> (<%= brl item.new_variant_price %>)</span>
-                <% end %>
                 <% if item.conditions_confirmed? && config&.conditions&.any? %>
                   <span class="assist-chip assist-chip--small"><%= icon "verified", class: "msr--sm" %> Condições confirmadas</span>
                 <% end %>
@@ -101,11 +98,8 @@
         <% end %>
       </ul>
       <div class="totals">
-        <% if er.credit_items_total.positive? %><div><span class="muted">Vira crédito</span><strong><%= brl er.credit_items_total %></strong></div><% end %>
-        <% if er.refund_total.positive? %><div><span class="muted">Reembolso</span><strong><%= brl er.refund_total %></strong></div><% end %>
-        <% if er.price_difference.to_f.nonzero? %>
-          <div><span class="muted">Diferença de preço (nova peça − original)</span><strong><%= brl er.price_difference %></strong></div>
-        <% end %>
+        <% if er.coupon_items_total.positive? %><div><span class="muted">Vira cupom</span><strong><%= brl er.coupon_items_total %></strong></div><% end %>
+        <% if er.refund_total.positive? %><div><span class="muted">Devolução do dinheiro</span><strong><%= brl er.refund_total %></strong></div><% end %>
         <% if er.customer_pays_shipping? && er.shipping_cost.present? %>
           <div><span class="muted">Frete reverso pago pelo cliente</span><strong>− <%= brl er.shipping_cost %></strong></div>
         <% end %>
@@ -201,59 +195,74 @@
 
     <% if er.coupon_code.present? %>
       <section class="card card--primary">
-        <h2 class="title-medium card__title"><%= icon "redeem" %> Crédito gerado</h2>
+        <h2 class="title-medium card__title"><%= icon "redeem" %> Cupom gerado</h2>
         <div class="coupon" data-controller="clipboard" data-clipboard-text-value="<%= er.coupon_code %>">
           <code><%= er.coupon_code %></code>
           <button type="button" class="icon-button" data-action="clipboard#copy" aria-label="Copiar"><%= icon "content_copy" %></button>
         </div>
-        <p class="body-small muted"><%= ExchangeConfig::CREDIT_TYPES[er.credit_kind] %><%= " · #{brl er.credit_amount}" if er.credit_amount %></p>
-      </section>
-    <% end %>
-
-    <% if er.replacement_items.any? %>
-      <section class="card">
-        <h2 class="title-medium card__title"><%= icon "swap_horiz" %> Nova peça</h2>
-        <dl class="details">
-          <% if er.stock_reserved_until %><dt>Estoque reservado até</dt><dd><%= date_br er.stock_reserved_until %></dd><% end %>
-          <% if er.replacement_order_name.present? %><dt>Pedido de reposição</dt><dd><%= er.replacement_order_name %></dd><% end %>
-          <% if er.invoice_url.present? %><dt>Complemento</dt><dd><%= link_to "Fatura enviada ao cliente", er.invoice_url, target: "_blank", rel: "noopener" %></dd><% end %>
-          <% if er.replacement_draft_order_id.blank? %><dt>Status</dt><dd class="muted">Será criada na etapa configurada.</dd><% end %>
-        </dl>
+        <% if er.credit_amount %><p class="body-small muted">Uso único · <%= brl er.credit_amount %></p><% end %>
       </section>
     <% end %>
 
     <section class="card">
-      <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Reembolsos</h2>
+      <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Devolução do dinheiro</h2>
+      <% if er.refund_method.present? %>
+        <dl class="details">
+          <dt>Cliente escolheu</dt><dd><%= er.refund_method_label %></dd>
+          <% { "pix_key" => "Chave Pix", "bank_name" => "Banco", "bank_agency" => "Agência", "bank_account" => "Conta",
+               "account_holder" => "Titular", "holder_document" => "CPF do titular" }.each do |key, label| %>
+            <% if er.bank_details[key].present? %><dt><%= label %></dt><dd><code><%= er.bank_details[key] %></code></dd><% end %>
+          <% end %>
+        </dl>
+      <% end %>
+
       <% if er.exchange_refunds.any? %>
         <ul class="refund-list">
           <% er.exchange_refunds.each do |refund| %>
-            <li>
-              <div>
-                <strong><%= brl refund.amount %></strong> · <%= refund.method_label %>
-                <% if refund.notes.present? %><div class="body-small muted"><%= refund.notes %></div><% end %>
+            <li class="refund-item">
+              <div class="refund-item__head">
+                <div>
+                  <strong><%= brl refund.amount %></strong> · <%= refund.method_label %>
+                  <span class="status-chip status-chip--<%= { 'done' => 'completed', 'failed' => 'rejected', 'processing' => 'approved' }.fetch(refund.status, 'pending') %>"><%= refund.status_label %></span>
+                  <% if refund.notes.present? %><div class="body-small muted"><%= refund.notes %></div><% end %>
+                </div>
+                <% if refund.receipt.attached? %>
+                  <%= link_to url_for(refund.receipt), target: "_blank", rel: "noopener", class: "btn btn--text btn--small" do %><%= icon "receipt_long" %> Comprovante<% end %>
+                <% end %>
               </div>
-              <%= form_with model: refund, url: exchange_request_exchange_refund_path(er, refund), method: :patch, class: "refund-status",
-                            data: { controller: "auto-submit" } do |rf| %>
-                <%= rf.select :status, ExchangeRefund::STATUSES.invert.to_a, {}, data: { action: "change->auto-submit#submit" }, aria: { label: "Status do reembolso" } %>
+              <%= form_with model: refund, url: exchange_request_exchange_refund_path(er, refund), method: :patch, class: "refund-item__form" do |rf| %>
+                <div class="text-field text-field--select">
+                  <%= rf.select :status, ExchangeRefund::STATUSES.invert.to_a, {}, id: "refund_#{refund.id}_status" %>
+                  <label for="refund_<%= refund.id %>_status">Status</label>
+                </div>
+                <label class="btn btn--outlined btn--small">
+                  <%= icon "upload_file" %> <%= refund.receipt.attached? ? "Trocar comprovante" : "Anexar comprovante" %>
+                  <%= rf.file_field :receipt, accept: "image/*,application/pdf", class: "visually-hidden" %>
+                </label>
+                <%= button_tag type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "save" %> Salvar<% end %>
               <% end %>
             </li>
           <% end %>
         </ul>
+      <% elsif er.refund_total.positive? %>
+        <p class="body-small muted">A devolução é registrada <%= config&.resolve_on == "inspection" ? "após a conferência do produto" : "na aprovação" %>.</p>
       <% else %>
-        <p class="body-small muted">Nenhum reembolso registrado.</p>
+        <p class="body-small muted">Sem devolução de dinheiro nesta solicitação.</p>
       <% end %>
-      <% if er.refund_details["pix_key"].present? %>
-        <p class="body-small">Chave Pix do cliente: <code><%= er.refund_details["pix_key"] %></code></p>
-      <% end %>
+
       <details class="disclosure">
-        <summary class="body-small">Registrar reembolso manual</summary>
-        <%= form_with model: ExchangeRefund.new(method: "pix", status: "done"), url: exchange_request_exchange_refunds_path(er), class: "stack stack--tight" do |rf| %>
+        <summary class="body-small">Registrar devolução manualmente</summary>
+        <%= form_with model: ExchangeRefund.new(method: er.refund_method || "pix", status: "done"), url: exchange_request_exchange_refunds_path(er), class: "stack stack--tight" do |rf| %>
           <div class="field-row">
             <%= m3_field rf, :amount, "Valor (R$)", as: :number_field, step: "0.01", min: 0.01, required: true %>
             <%= m3_select rf, :method, "Forma", ExchangeRefund::METHODS.invert.to_a %>
             <%= m3_select rf, :status, "Status", ExchangeRefund::STATUSES.invert.to_a %>
           </div>
-          <%= m3_field rf, :notes, "Observação (ex.: ID da transação Pix)" %>
+          <%= m3_field rf, :notes, "Observação (ex.: ID da transação)" %>
+          <label class="btn btn--outlined btn--small">
+            <%= icon "upload_file" %> Anexar comprovante
+            <%= rf.file_field :receipt, accept: "image/*,application/pdf", class: "visually-hidden" %>
+          </label>
           <div><%= button_tag type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "add" %> Registrar<% end %></div>
         <% end %>
       </details>

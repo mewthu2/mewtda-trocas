@@ -1,4 +1,4 @@
-<% content_for :title, "Resultados e financeiro" %>
+<% content_for :title, "Aprovação, cupom e devolução" %>
 <% c = @exchange_config %>
 
 <%= render "tabs" %>
@@ -13,54 +13,33 @@
         <div class="field-row">
           <%= m3_field f, :auto_approve_max_value, "Valor máximo para aprovar sozinho (R$)", as: :number_field, step: "0.01", min: 0,
                        hint: "Vazio = sem limite." %>
-          <%= m3_select f, :resolve_on, "Liberar crédito/reembolso/nova peça", ExchangeConfig::RESOLVE_ON.invert.to_a %>
+          <%= m3_select f, :resolve_on, "Gerar cupom / registrar devolução", ExchangeConfig::RESOLVE_ON.invert.to_a %>
         </div>
         <div class="field-row">
-          <%= m3_field f, :abuse_max_requests, "Suspeita de abuso a partir de (solicitações)", as: :number_field, min: 1 %>
-          <%= m3_field f, :abuse_window_days, "…nos últimos (dias)", as: :number_field, min: 1 %>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2 class="title-medium card__title"><%= icon "compare_arrows" %> Diferença de preço</h2>
-        <p class="body-small muted">Quando o cliente troca por outro tamanho/cor com preço diferente.</p>
-        <%= m3_select f, :price_basis, "Comparar usando o", ExchangeConfig::PRICE_BASES.invert.to_a %>
-        <div class="field-row">
-          <%= m3_select f, :higher_price_action, "Nova peça mais cara", ExchangeConfig::HIGHER_PRICE_ACTIONS.invert.to_a,
-                        hint: "Cobrança: o cliente recebe a fatura da Shopify para pagar a diferença." %>
-          <%= m3_select f, :lower_price_action, "Nova peça mais barata", ExchangeConfig::LOWER_PRICE_ACTIONS.invert.to_a %>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2 class="title-medium card__title"><%= icon "inventory_2" %> Estoque da nova peça</h2>
-        <div class="field-row">
-          <%= m3_select f, :reserve_stock_on, "Reservar estoque", ExchangeConfig::RESERVE_STOCK_ON.invert.to_a,
-                        hint: "A reserva é feita num pedido rascunho da Shopify." %>
-          <%= m3_field f, :reserve_hours, "Expira em (horas)", as: :number_field, min: 1 %>
+          <%= m3_field f, :abuse_max_requests, "Alerta de abuso a partir de", as: :number_field, min: 1 %>
+          <%= m3_field f, :abuse_window_days, "solicitações em (dias)", as: :number_field, min: 1 %>
         </div>
       </section>
     </div>
 
     <div class="stack">
       <section class="card">
-        <h2 class="title-medium card__title"><%= icon "redeem" %> Crédito na loja</h2>
-        <%= m3_select f, :credit_type, "Forma do crédito", ExchangeConfig::CREDIT_TYPES.invert.to_a,
-                      hint: "Vale-presente e crédito na conta permitem usar o valor aos poucos; o cupom é de uso único." %>
+        <h2 class="title-medium card__title"><%= icon "redeem" %> Cupom</h2>
+        <p class="body-small muted">Gerado na Shopify, de uso único, no valor dos itens em que o cliente escolheu cupom.</p>
         <%= m3_field f, :coupon_validity_days, "Validade (dias)", as: :number_field, min: 1 %>
         <%= m3_switch f, :credit_link_customer, "Vincular ao cliente", "Só o cliente da solicitação consegue usar." %>
-        <%= m3_switch f, :credit_combines_with_discounts, "Acumular com outros descontos", "Vale para o cupom." %>
+        <%= m3_switch f, :coupon_combines_with_discounts, "Acumular com outros descontos" %>
       </section>
 
       <section class="card">
-        <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Reembolso</h2>
+        <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Devolução do dinheiro</h2>
         <p class="body-small muted">
-          Cartão: estornado pela Shopify na forma de pagamento original, por item.
-          Pix e boleto: a solicitação registra a chave Pix do cliente e a equipe acompanha o pagamento na tela da solicitação.
+          A equipe faz a devolução fora da plataforma e registra na solicitação. Em Pix e transferência, o cliente informa
+          os dados bancários e a equipe anexa o comprovante, que fica visível para ele.
         </p>
-        <%= m3_switch f, :refund_original_shipping, "Devolver o frete da compra",
-                      "Quando o pedido inteiro é devolvido. No arrependimento isso é sempre feito (exigência legal)." %>
-        <%= m3_field f, :refund_sla_days, "Prazo prometido para o reembolso (dias)", as: :number_field, min: 0 %>
+        <div class="title-small">Formas oferecidas ao cliente</div>
+        <%= m3_checkbox_group f, :refund_methods, ExchangeConfig::REFUND_METHODS %>
+        <%= m3_field f, :refund_sla_days, "Prazo prometido para devolver (dias úteis)", as: :number_field, min: 0 %>
       </section>
     </div>
   </div>

@@ -20,7 +20,8 @@
   <% when :expired %>
     <div class="banner banner--warning"><%= icon "schedule" %><div>Os prazos de troca e devolução deste pedido já terminaram (ou todos os itens já foram solicitados). Se o produto tem defeito, fale com a loja.</div></div>
   <% else %>
-    <%= form_with url: public_exchange_path(@config.slug), method: :post, multipart: true, class: "stack" do %>
+    <%= form_with url: public_exchange_path(@config.slug), method: :post, multipart: true, class: "stack",
+                  data: { controller: "refund-choice", action: "change->refund-choice#refresh" } do %>
       <%= hidden_field_tag :order_number, @order_number %>
       <%= hidden_field_tag :email, @email %>
 
@@ -62,18 +63,42 @@
         </fieldset>
       <% end %>
 
-      <details class="disclosure">
-        <summary class="title-small"><%= icon "pix" %> Pagou com Pix ou boleto?</summary>
-        <div class="text-field">
-          <%= text_field_tag :pix_key, params[:pix_key], placeholder: " " %>
-          <label for="pix_key">Chave Pix para reembolso (se houver)</label>
-          <span class="text-field__supporting">Só é usada se você escolher reembolso.</span>
+      <fieldset class="stack stack--tight refund-box" data-refund-choice-target="box" hidden>
+        <legend class="title-small"><%= icon "currency_exchange" %> Como você quer receber o dinheiro de volta?</legend>
+        <div class="choice-list">
+          <% @config.refund_methods.each_with_index do |method, i| %>
+            <label class="choice">
+              <%= radio_button_tag :refund_method, method, (params[:refund_method] || @config.refund_methods.first) == method,
+                                   data: { action: "refund-choice#refresh" } %>
+              <span><%= ExchangeConfig::REFUND_METHODS[method] %></span>
+            </label>
+          <% end %>
         </div>
-      </details>
+        <div class="stack stack--tight" data-refund-choice-target="fields" data-method="pix" hidden>
+          <div class="field-row">
+            <div class="text-field"><%= text_field_tag :pix_key, params[:pix_key], placeholder: " ", required: true %><label for="pix_key">Chave Pix</label></div>
+            <div class="text-field"><%= text_field_tag :account_holder, params[:account_holder], placeholder: " ", required: true, id: "pix_holder" %><label for="pix_holder">Nome do titular</label></div>
+          </div>
+        </div>
+        <div class="stack stack--tight" data-refund-choice-target="fields" data-method="transferencia" hidden>
+          <div class="field-row">
+            <div class="text-field"><%= text_field_tag :bank_name, params[:bank_name], placeholder: " ", required: true %><label for="bank_name">Banco</label></div>
+            <div class="text-field"><%= text_field_tag :bank_agency, params[:bank_agency], placeholder: " ", required: true, inputmode: "numeric" %><label for="bank_agency">Agência</label></div>
+            <div class="text-field"><%= text_field_tag :bank_account, params[:bank_account], placeholder: " ", required: true %><label for="bank_account">Conta com dígito</label></div>
+          </div>
+          <div class="field-row">
+            <div class="text-field"><%= text_field_tag :account_holder, params[:account_holder], placeholder: " ", required: true, id: "transfer_holder" %><label for="transfer_holder">Nome do titular</label></div>
+            <div class="text-field"><%= text_field_tag :holder_document, params[:holder_document], placeholder: " ", required: true, inputmode: "numeric" %><label for="holder_document">CPF do titular</label></div>
+          </div>
+        </div>
+        <p class="body-small muted" data-refund-choice-target="fields" data-method="estorno" hidden>
+          O valor volta no mesmo meio de pagamento da compra (ex.: estorno no cartão).
+        </p>
+      </fieldset>
 
       <p class="body-small muted">
         Analisamos em até <%= pluralize(@config.analysis_sla_days, "dia útil", plural: "dias úteis") %>.
-        Reembolsos são feitos em até <%= pluralize(@config.refund_sla_days, "dia útil", plural: "dias úteis") %> após a conferência.
+        Devoluções de dinheiro são feitas em até <%= pluralize(@config.refund_sla_days, "dia útil", plural: "dias úteis") %> após a conferência.
       </p>
 
       <%= button_tag type: "submit", class: "btn btn--filled btn--accent btn--block", data: { turbo_submits_with: "Enviando…" } do %>

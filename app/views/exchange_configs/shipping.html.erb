@@ -88,7 +88,7 @@
         <%= m3_field f, :free_shipping_above, "Grátis para pedidos a partir de (R$)", as: :number_field, step: "0.01", min: 0,
                      hint: "Vazio = sem faixa de valor." %>
         <%= m3_field f, :customer_shipping_flat_fee, "Taxa fixa cobrada do cliente (R$)", as: :number_field, step: "0.01", min: 0,
-                     hint: "Vazio = cotação dos Correios. É descontada do crédito/reembolso ou somada ao complemento." %>
+                     hint: "Vazio = cotação dos Correios. É descontada do cupom ou da devolução do dinheiro." %>
       </section>
 
       <section class="card" data-controller="nested-form">

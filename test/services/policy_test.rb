@@ -43,13 +43,6 @@ class PolicyTest < ActiveSupport::TestCase
     assert_includes keys, "arrependimento"
   end
 
-  test "outro tamanho só aparece com variante disponível" do
-    policy = Exchange::Policy.new(@config, build_order)
-
-    assert_includes policy.item(0).reason("tamanho")[:resolutions], "other_variant"
-    assert_not_includes policy.item(1).reason("tamanho")[:resolutions], "other_variant"
-  end
-
   test "conta a partir do envio quando configurado e desconta itens já pedidos" do
     @config.update!(window_base: "fulfillment")
     policy = Exchange::Policy.new(@config, build_order(delivered_days_ago: 2), already_requested: { "gid://shopify/LineItem/2" => 1 })

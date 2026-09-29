@@ -4,7 +4,7 @@ module Exchange
   #   - motivo voluntário: o que o motivo diz, com duas exceções a favor do
   #     cliente — primeira troca grátis e pedidos acima de um valor.
   # Quando o cliente paga, o valor vem da cotação dos Correios (ou da taxa fixa
-  # configurada) e é descontado do crédito/reembolso ou somado ao complemento.
+  # configurada) e é descontado do cupom ou da devolução do dinheiro.
   class ShippingQuote
     Result = Struct.new(:payer, :service, :cost, :note, keyword_init: true)
 

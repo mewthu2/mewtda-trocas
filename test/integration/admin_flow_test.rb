@@ -106,12 +106,12 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
 
     reason = config.reason_for("cor")
     patch exchange_config_path, params: { return_to: "reasons", exchange_config: {
-      exchange_reasons_attributes: { "0" => { id: reason.id, label: "Outra cor", resolutions: [ "", "store_credit" ] },
-                                     "1" => { label: "Presente repetido", category: "voluntary", resolutions: [ "store_credit" ] } }
+      exchange_reasons_attributes: { "0" => { id: reason.id, label: "Outra cor", resolutions: [ "", "refund" ] },
+                                     "1" => { label: "Presente repetido", category: "voluntary", resolutions: [ "coupon" ] } }
     } }
     assert_redirected_to reasons_exchange_config_path
     assert_equal "Outra cor", reason.reload.label
-    assert_equal %w[store_credit], reason.resolutions
+    assert_equal %w[refund], reason.resolutions
     assert config.reload.reason_for("presente_repetido")
 
     patch exchange_config_path, params: { return_to: "shipping", exchange_config: {
@@ -140,9 +140,9 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "aprova, informa postagem manual, recebe e registra reembolso" do
+  test "aprova, informa postagem manual, recebe, anexa comprovante e conclui" do
     request = create_request(@client, items: [ { resolution: "refund", price: 90 } ],
-                                      refund_details: { "gateways" => [ "pix" ] })
+                                      refund_method: "pix", refund_details: { "pix_key" => "maria@pix.com" })
     sign_in @user
 
     patch exchange_request_path(request), params: { status: "approved" }
@@ -154,12 +154,22 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     patch exchange_request_path(request), params: { status: "received" }
     assert request.reload.received?
 
+    get exchange_request_path(request)
+    assert_select "code", "maria@pix.com"
+
     refund = request.exchange_refunds.sole
-    patch exchange_request_exchange_refund_path(request, refund), params: { exchange_refund: { status: "done" } }
+    assert_equal "pix", refund.method
+    patch exchange_request_exchange_refund_path(request, refund),
+          params: { exchange_refund: { status: "done", receipt: fixture_file_upload("photo.png", "image/png") } }
     assert_equal "done", refund.reload.status
+    assert refund.receipt.attached?
+    assert request.reload.completed?
 
     get exchange_request_path(request)
     assert_response :success
     assert_select ".event-list li", minimum: 3
+
+    get public_exchange_tracking_path(@client.exchange_config.slug, request.public_code)
+    assert_select "a", /Ver comprovante/
   end
 end

@@ -8,8 +8,8 @@ class TransitionTest < ActiveSupport::TestCase
     @config = create_config(@client, coupon_validity_days: 15)
   end
 
-  test "aprovar gera crédito dos itens de crédito e avisa o cliente" do
-    request = create_request(@client, items: [ { resolution: "other_product", price: 100, quantity: 2 }, { resolution: "store_credit", price: 50 } ])
+  test "aprovar gera cupom dos itens de cupom e avisa o cliente" do
+    request = create_request(@client, items: [ { resolution: "coupon", price: 100, quantity: 2 }, { resolution: "coupon", price: 50 } ])
     captured = nil
 
     with_stubbed(Shopify::CreateDiscountCode, :call, ->(**kwargs) { captured = kwargs; "RECABC12345" }) do
@@ -24,7 +24,7 @@ class TransitionTest < ActiveSupport::TestCase
     assert_equal 250.0, captured[:amount]
   end
 
-  test "resolver só após conferência: aprovar não gera crédito, receber gera e conclui" do
+  test "resolver só após conferência: aprovar não gera cupom, receber gera e conclui" do
     @config.update!(resolve_on: "inspection")
     request = create_request(@client)
 

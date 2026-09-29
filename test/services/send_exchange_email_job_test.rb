@@ -5,7 +5,7 @@ class SendExchangeEmailJobTest < ActiveSupport::TestCase
     client = create_client(email_sending_domain: "loja.com", ses_verification_status: "verified")
     create_config(client)
     request = create_request(client, status: :approved)
-    request.update!(coupon_code: "RECXYZ")
+    request.update!(coupon_code: "RECXYZ", public_code: "PROTO123")
 
     fake_ses = Object.new
     def fake_ses.send_email(**args) = (@sent = args)
@@ -20,7 +20,7 @@ class SendExchangeEmailJobTest < ActiveSupport::TestCase
     assert_equal "Loja Teste <naoresponda@loja.com>", fake_ses.sent[:from_email_address]
     assert_equal "Sua solicitação foi aprovada!", fake_ses.sent.dig(:content, :simple, :subject, :data)
     html = fake_ses.sent.dig(:content, :simple, :body, :html, :data)
-    assert_includes html, "RECXYZ"
+    assert_includes html, "PROTO123"
     assert_includes html, "Maria"
   end
 end

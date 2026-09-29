@@ -68,7 +68,8 @@ module Public
     end
 
     def request_params
-      params.permit(:email, :customer_name, :customer_phone, :customer_zip, :return_mode, :pix_key,
+      params.permit(:email, :customer_name, :customer_phone, :customer_zip, :return_mode, :refund_method,
+                    :pix_key, :bank_name, :bank_agency, :bank_account, :account_holder, :holder_document,
                     items: {}).to_h.with_indifferent_access.tap do |p|
         p[:items] = params.fetch(:items, {}).to_unsafe_h.transform_values do |raw|
           raw.to_h.merge("photo" => raw["photo"])

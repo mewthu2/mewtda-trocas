@@ -1,7 +1,6 @@
 module Exchange
-  # Aprova a solicitação: reserva estoque (se configurado para a aprovação),
-  # libera a postagem reversa e, se a loja resolve na aprovação, já executa
-  # crédito/reembolso/reposição.
+  # Aprova a solicitação: libera a postagem reversa e, se a loja resolve na
+  # aprovação, já gera o cupom e registra a devolução do dinheiro.
   class Approve
     def initialize(exchange_request, user: nil, auto: false)
       @exchange_request = exchange_request
@@ -15,7 +14,6 @@ module Exchange
       request.log!("approved", @auto ? "Aprovada automaticamente." : "Solicitação aprovada.", user: @user, public: true)
       Exchange::Notify.call(request, "approved")
 
-      Exchange::ReserveStock.new(request).call_if("approval")
       Exchange::IssueReturnLabel.new(request, user: @user).call if request.return_authorization_code.blank?
       Exchange::Resolve.new(request, user: @user).call if request.config.resolve_on == "approval"
       request

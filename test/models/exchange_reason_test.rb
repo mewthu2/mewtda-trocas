@@ -9,7 +9,7 @@ class ExchangeReasonTest < ActiveSupport::TestCase
 
   test "motivos legais não perdem os mínimos da lei" do
     regret = @config.reason_for("arrependimento")
-    regret.update!(resolutions: %w[store_credit], shipping_payer: "customer")
+    regret.update!(resolutions: %w[coupon], shipping_payer: "customer")
     assert_includes regret.resolutions, "refund"
     assert_equal "store", regret.shipping_payer
 
@@ -17,7 +17,7 @@ class ExchangeReasonTest < ActiveSupport::TestCase
     defect.update!(requires_photo: false, manual_review: false, resolutions: %w[repair])
     assert defect.requires_photo?
     assert defect.manual_review?
-    assert_equal %w[refund repair same_variant], defect.resolutions.sort
+    assert_equal %w[refund repair], defect.resolutions.sort
   end
 
   test "exige ao menos um motivo ativo" do

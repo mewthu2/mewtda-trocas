@@ -32,7 +32,7 @@ class PublicExchangeFlowTest < ActionDispatch::IntegrationTest
     assert_match "Pedido não encontrado", response.body
   end
 
-  test "fluxo completo: troca por outro tamanho e reembolso por defeito" do
+  test "fluxo completo: cupom por tamanho e devolução por Pix no defeito" do
     with_stubbed(Shopify::FindOrderForExchange, :call, @order) do
       post public_exchange_lookup_path(@config.slug), params: { order_number: "1001", email: "maria@example.com" }
       assert_response :success
@@ -41,10 +41,9 @@ class PublicExchangeFlowTest < ActionDispatch::IntegrationTest
       assert_difference -> { ExchangeRequestItem.count }, 2 do
         post public_exchange_path(@config.slug), params: {
           order_number: "1001", email: "maria@example.com", customer_name: "Maria", customer_phone: "11988887777",
-          return_mode: "agencia",
+          return_mode: "agencia", refund_method: "pix", pix_key: "maria@pix.com", account_holder: "Maria Silva",
           items: {
-            "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "other_variant",
-                     new_variant_id: "gid://shopify/ProductVariant/101", quantity: "1" },
+            "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "coupon", quantity: "1" },
             "1" => { index: "1", selected: "1", reason: "defeito", resolution: "refund",
                      answers: { "0" => "Costura abriu", "1" => "No primeiro uso" },
                      photo: fixture_file_upload("photo.png", "image/png") }
@@ -60,9 +59,9 @@ class PublicExchangeFlowTest < ActionDispatch::IntegrationTest
     assert_equal "11988887777", request.customer_phone
     assert_equal "store", request.shipping_payer
 
-    swap = request.exchange_request_items.find_by(sku: "VEST-M")
-    assert_equal "G", swap.new_variant_title
-    assert_equal 170.0, swap.new_variant_price.to_f
+    assert_equal "pix", request.refund_method
+    assert_equal "maria@pix.com", request.bank_details["pix_key"]
+    assert request.exchange_request_items.find_by(sku: "VEST-M").troca?
     defect = request.exchange_request_items.find_by(sku: "CAM-G")
     assert defect.photo.attached?
     assert defect.devolucao?
@@ -82,7 +81,7 @@ class PublicExchangeFlowTest < ActionDispatch::IntegrationTest
       with_stubbed(Shopify::CreateDiscountCode, :call, ->(**) { "RECAUTO" }) do
         post public_exchange_path(@config.slug), params: {
           order_number: "1001", email: "maria@example.com", customer_name: "Maria",
-          items: { "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "store_credit", quantity: "1" } }
+          items: { "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "coupon", quantity: "1" } }
         }
       end
     end
@@ -98,7 +97,7 @@ class PublicExchangeFlowTest < ActionDispatch::IntegrationTest
     with_stubbed(Shopify::FindOrderForExchange, :call, build_order(delivered_days_ago: 45)) do
       post public_exchange_path(@config.slug), params: {
         order_number: "1001", email: "maria@example.com", customer_name: "Maria",
-        items: { "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "store_credit" } }
+        items: { "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "coupon" } }
       }
     end
 
@@ -120,12 +119,25 @@ class PublicExchangeFlowTest < ActionDispatch::IntegrationTest
 
       post public_exchange_path(@config.slug), params: {
         order_number: "1001", email: "maria@example.com", customer_name: "Maria",
-        items: { "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "store_credit" } }
+        items: { "0" => { index: "0", selected: "1", reason: "tamanho", resolution: "coupon" } }
       }
       assert_response :unprocessable_entity
       assert_match "Confirme as condições", response.body
     end
 
+    assert_equal 0, ExchangeRequest.count
+  end
+
+  test "devolução sem dados bancários é recusada" do
+    with_stubbed(Shopify::FindOrderForExchange, :call, @order) do
+      post public_exchange_path(@config.slug), params: {
+        order_number: "1001", email: "maria@example.com", customer_name: "Maria", refund_method: "transferencia", bank_name: "Itaú",
+        items: { "0" => { index: "0", selected: "1", reason: "arrependimento", resolution: "refund" } }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "Preencha os dados", response.body
     assert_equal 0, ExchangeRequest.count
   end
 

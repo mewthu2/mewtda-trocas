@@ -43,20 +43,11 @@
               <label class="choice">
                 <%= radio_button_tag "items[#{i}][resolution]", resolution,
                                      sent["reason"] == reason.key ? sent["resolution"] == resolution : ri.zero?,
-                                     id: "item_#{i}_#{reason.key}_#{resolution}", data: { action: "pick-item#resolutionChanged" } %>
+                                     id: "item_#{i}_#{reason.key}_#{resolution}", data: { action: "refund-choice#refresh" } %>
                 <span><%= ExchangeReason::RESOLUTIONS[resolution] %></span>
               </label>
             <% end %>
           </div>
-
-          <% if option[:resolutions].include?("other_variant") %>
-            <div class="text-field text-field--select" data-pick-item-target="variant" hidden>
-              <%= select_tag "items[#{i}][new_variant_id]",
-                             options_for_select(@policy.other_variants(item).map { |v| [ "#{v[:title]} — #{brl(v[:price])}", v[:id] ] }, sent["new_variant_id"]),
-                             include_blank: true, id: "item_#{i}_#{reason.key}_variant" %>
-              <label for="item_<%= i %>_<%= reason.key %>_variant">Novo tamanho/cor</label>
-            </div>
-          <% end %>
 
           <% reason.question_list.each_with_index do |question, qi| %>
             <div class="text-field text-field--textarea">

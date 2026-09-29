@@ -5,8 +5,6 @@ module Exchange
   #     exceto itens excluídos por regra;
   #   - arrependimento: 7 dias da entrega, vale mesmo para itens excluídos;
   #   - vício / erro no pedido: prazo de vício (padrão 90 dias).
-  # Só mostra resultados possíveis no caso (ex.: "outro tamanho" só se houver
-  # outra variante disponível).
   class Policy
     ItemOptions = Struct.new(:index, :item, :reasons, :remaining, :message, keyword_init: true) do
       def available?
@@ -81,10 +79,7 @@ module Exchange
       deadline = deadline_for(reason, item)
       return nil if deadline.nil? || days_since.nil? || days_since > deadline
 
-      resolutions = reason.resolutions.select { |resolution| resolution_possible?(resolution, reason, item) }
-      return nil if resolutions.empty?
-
-      { reason: reason, resolutions: resolutions, days_left: deadline - days_since }
+      { reason: reason, resolutions: reason.resolutions, days_left: deadline - days_since }
     end
 
     def deadline_for(reason, item)
@@ -93,25 +88,6 @@ module Exchange
       when "regret" then ExchangeConfig::REGRET_WINDOW_DAYS
       else config.defect_window_days
       end
-    end
-
-    def resolution_possible?(resolution, reason, item)
-      case resolution
-      when "other_variant" then other_variants(item).any?
-      when "same_variant" then same_variant_available?(item) || reason.legal?
-      else true
-      end
-    end
-
-    def same_variant_available?(item)
-      variant = Array(item[:variants]).find { |v| v[:id] == item[:variant_id] }
-      variant.nil? || variant[:available] != false
-    end
-
-    public
-
-    def other_variants(item)
-      Array(item[:variants]).select { |v| v[:id] != item[:variant_id] && v[:available] != false }
     end
   end
 end

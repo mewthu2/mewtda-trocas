@@ -1,6 +1,6 @@
 # Busca o pedido na Shopify pelo número (#1001) e confere o e-mail — é a única
 # "autenticação" do cliente final na página pública. Traz o que as regras de
-# troca precisam: entrega, tags, coleções, canal e variantes disponíveis.
+# troca precisam: entrega, tags, coleções, canal e peso.
 class Shopify::FindOrderForExchange
   QUERY = <<~GRAPHQL.freeze
     query($q: String!) {
@@ -15,15 +15,8 @@ class Shopify::FindOrderForExchange
             nodes {
               id title variantTitle sku quantity currentQuantity
               discountedUnitPriceAfterAllDiscountsSet { shopMoney { amount } }
-              variant {
-                id price
-                inventoryItem { measurement { weight { unit value } } }
-              }
-              product {
-                id tags
-                collections(first: 25) { nodes { id title } }
-                variants(first: 100) { nodes { id title price availableForSale } }
-              }
+              variant { id inventoryItem { measurement { weight { unit value } } } }
+              product { id tags collections(first: 25) { nodes { id title } } }
             }
           }
         }
@@ -97,13 +90,9 @@ class Shopify::FindOrderForExchange
       variant_title: line_item["variantTitle"],
       quantity: quantity,
       price: line_item.dig("discountedUnitPriceAfterAllDiscountsSet", "shopMoney", "amount").to_f,
-      current_price: variant["price"]&.to_f,
       weight_g: weight && (weight["value"].to_f * WEIGHT_TO_GRAMS.fetch(weight["unit"], 1)).round,
       product_tags: Array(product["tags"]),
-      collections: Array(product.dig("collections", "nodes")).map { |c| { id: c["id"], title: c["title"] } },
-      variants: Array(product.dig("variants", "nodes")).map do |v|
-        { id: v["id"], title: v["title"], price: v["price"].to_f, available: v["availableForSale"] }
-      end
+      collections: Array(product.dig("collections", "nodes")).map { |c| { id: c["id"], title: c["title"] } }
     }
   end
 

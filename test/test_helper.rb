@@ -24,7 +24,7 @@ module ActiveSupport
       client.create_exchange_config!({ active: true, company_name: client.name, return_window_days: 7 }.merge(attrs))
     end
 
-    def create_request(client, status: :pending, items: [ { resolution: "other_product", price: 100 } ], **attrs)
+    def create_request(client, status: :pending, items: [ { resolution: "coupon", price: 100 } ], **attrs)
       request = client.exchange_requests.create!({ shopify_order_id: "1", shopify_order_number: "#1001",
                                                    customer_email: "maria@example.com", customer_name: "Maria",
                                                    status: status, return_mode: "agencia" }.merge(attrs))

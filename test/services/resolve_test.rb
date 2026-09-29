@@ -5,12 +5,12 @@ class ResolveTest < ActiveSupport::TestCase
 
   setup do
     @client = create_client
-    @config = create_config(@client, coupon_validity_days: 15, lower_price_action: "credit", higher_price_action: "charge")
+    @config = create_config(@client, coupon_validity_days: 15, coupon_combines_with_discounts: true)
   end
 
-  test "crédito desconta o frete pago pelo cliente" do
-    request = create_request(@client, items: [ { resolution: "store_credit", price: 100 } ],
-                                      shipping_payer: "customer", shipping_cost: 20)
+  test "cupom no valor dos itens, descontando o frete pago pelo cliente" do
+    request = create_request(@client, items: [ { resolution: "coupon", price: 100 } ],
+                                      shipping_payer: "customer", shipping_cost: 20, shopify_customer_id: "gid://shopify/Customer/9")
     captured = nil
 
     with_stubbed(Shopify::CreateDiscountCode, :call, ->(**kwargs) { captured = kwargs; "RECABC" }) do
@@ -19,62 +19,53 @@ class ResolveTest < ActiveSupport::TestCase
 
     assert_equal 80.0, captured[:amount]
     assert_equal 15.days, captured[:expires_in]
+    assert captured[:combines]
+    assert_equal "gid://shopify/Customer/9", captured[:customer_id]
     assert_equal "RECABC", request.reload.coupon_code
     assert_equal 80.0, request.credit_amount
   end
 
-  test "nova peça mais cara envia fatura do complemento" do
-    request = create_request(@client, items: [ { resolution: "other_variant", price: 100, new_variant_id: "gid://v/2",
-                                                 new_variant_price: 130, shopify_variant_id: "gid://v/1" } ])
-    fake = Object.new
-    def fake.draft(**args)
-      @args = args
-      { "id" => "gid://draft/1", "name" => "#D1" }
-    end
-    def fake.send_invoice(_id) = "https://loja/fatura"
-    def fake.args = @args
+  test "devolução do dinheiro fica pendente com a forma escolhida pelo cliente" do
+    request = create_request(@client, items: [ { resolution: "refund", price: 90, reason: "arrependimento" } ],
+                                      refund_method: "pix", refund_details: { "pix_key" => "maria@pix" })
 
-    with_stubbed(Shopify::ReplacementOrder, :new, fake) do
+    with_stubbed(Shopify::CreateDiscountCode, :call, ->(**) { raise "não deveria gerar cupom" }) do
       assert Exchange::Resolve.new(request).call
     end
-
-    assert_equal 30.0, fake.args[:charge]
-    line = fake.args[:lines].sole
-    assert_equal "gid://v/2", line[:variant_id]
-    assert_equal 130.0, line[:price].to_f
-    assert_equal "https://loja/fatura", request.reload.invoice_url
-    assert_equal 30.0, request.price_difference
-  end
-
-  test "reembolso de pedido pago com Pix fica pendente para a equipe" do
-    request = create_request(@client, items: [ { resolution: "refund", price: 90, reason: "arrependimento" } ],
-                                      refund_details: { "gateways" => [ "Pix (manual)" ], "pix_key" => "maria@pix" })
-
-    assert Exchange::Resolve.new(request).call
 
     refund = request.exchange_refunds.sole
     assert_equal "pix", refund.method
     assert_equal "pending", refund.status
     assert_equal 90.0, refund.amount
-    assert_includes refund.notes, "maria@pix"
   end
 
-  test "reembolso no cartão vai pela Shopify" do
-    request = create_request(@client, items: [ { resolution: "refund", price: 90, shopify_line_item_id: "gid://li/1" } ],
-                                      refund_details: { "gateways" => [ "shopify_payments" ] })
-    captured = nil
-    result = Shopify::CreateRefund::Result.new(refund_id: "gid://refund/1", amount: 90.0, gateway: "shopify_payments")
+  test "cupom e devolução juntos; frete maior que o cupom sai da devolução" do
+    request = create_request(@client, items: [ { resolution: "coupon", price: 10 }, { resolution: "refund", price: 100 } ],
+                                      refund_method: "estorno", shipping_payer: "customer", shipping_cost: 25)
 
-    with_stubbed(Shopify::CreateRefund, :call, ->(**kwargs) { captured = kwargs; result }) do
+    with_stubbed(Shopify::CreateDiscountCode, :call, ->(**) { "RECX" }) do
       assert Exchange::Resolve.new(request).call
     end
 
-    assert_equal [ { line_item_id: "gid://li/1", quantity: 1 } ], captured[:items]
-    assert_equal "done", request.exchange_refunds.sole.status
+    assert_nil request.reload.coupon_code
+    assert_equal 85.0, request.exchange_refunds.sole.amount
+  end
+
+  test "não duplica cupom nem devolução se rodar de novo" do
+    request = create_request(@client, items: [ { resolution: "coupon", price: 50 }, { resolution: "refund", price: 30 } ],
+                                      refund_method: "estorno")
+    calls = 0
+
+    with_stubbed(Shopify::CreateDiscountCode, :call, ->(**) { calls += 1; "RECONE" }) do
+      2.times { Exchange::Resolve.new(request.reload).call }
+    end
+
+    assert_equal 1, calls
+    assert_equal 1, request.exchange_refunds.count
   end
 
   test "falha na Shopify é registrada no histórico sem quebrar" do
-    request = create_request(@client, items: [ { resolution: "store_credit", price: 50 } ])
+    request = create_request(@client, items: [ { resolution: "coupon", price: 50 } ])
 
     with_stubbed(Shopify::CreateDiscountCode, :call, nil) do
       assert_not Exchange::Resolve.new(request).call

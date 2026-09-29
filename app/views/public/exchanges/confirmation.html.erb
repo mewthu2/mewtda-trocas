@@ -16,7 +16,7 @@
     <% end %>
   </p>
   <% if er.shipping_payer == "customer" && er.shipping_cost.present? %>
-    <p class="body-small muted">Frete de volta por sua conta: <%= brl er.shipping_cost %> (descontado do crédito/reembolso ou somado à diferença).</p>
+    <p class="body-small muted">Frete de volta por sua conta: <%= brl er.shipping_cost %> (descontado do cupom ou da devolução).</p>
   <% end %>
   <% if @config.tracking_page_enabled? %>
     <%= link_to public_exchange_tracking_path(@config.slug, er.public_code), class: "btn btn--filled btn--accent" do %><%= icon "travel_explore" %> Acompanhar solicitação<% end %>

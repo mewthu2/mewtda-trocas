@@ -958,8 +958,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); widt
 .answers dt { color: var(--on-surface-variant); }
 .answers dd { margin: 0 0 6px; }
 .refund-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.refund-list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.refund-status select { height: 36px; border-radius: var(--shape-sm); border: 1px solid var(--outline); padding: 0 8px; font: inherit; background: var(--surface); }
+.refund-item { display: grid; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--outline-variant); }
+.refund-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.refund-item__head { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.refund-item__head .status-chip { margin-left: 6px; }
+.refund-item__form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.refund-item__form .text-field { min-width: 180px; flex: 1; }
+.refund-box { border: 1px solid var(--outline-variant); border-radius: var(--shape-md); padding: 16px; }
+.refund-box legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 4px; }
 .reject-menu { position: relative; }
 .reject-menu > summary { list-style: none; }
 .reject-menu > summary::-webkit-details-marker { display: none; }

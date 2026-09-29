@@ -40,8 +40,8 @@ As tabelas têm a mesma estrutura das do painel, mas clientes e usuários são c
    do add-on Bucketeer; configure também `RAILS_MASTER_KEY` (ou `SECRET_KEY_BASE`) e as da SES.
 2. Migrations rodam automaticamente no deploy (fase `release` do `Procfile`).
 3. Fotos e logos vão para o S3 do Bucketeer (`ACTIVE_STORAGE_SERVICE=amazon`).
-4. O token Shopify de cada loja precisa de `read_orders`, `read_products`, `read_customers`, `write_discounts`,
-   `write_draft_orders`, `write_orders`, `write_gift_cards` e `write_store_credit_account_transactions`.
+4. O token Shopify de cada loja precisa de `read_orders`, `read_products`, `read_customers` e `write_discounts`.
+   Devolução de dinheiro não passa pela Shopify: a equipe faz e anexa o comprovante na solicitação.
 6. Regras de troca (prazos, motivos, frete reverso/Correios, crédito, reembolso, mensagens) ficam em Configuração;
    o guia completo para os lojistas está em `/como-usar`.
 5. Jobs (e-mail) rodam no próprio processo (`:async`), sem worker separado.

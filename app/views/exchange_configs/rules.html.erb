@@ -18,7 +18,7 @@
           <div class="text-field is-readonly">
             <input type="text" value="<%= ExchangeConfig::REGRET_WINDOW_DAYS %> dias" placeholder=" " readonly id="regret_days">
             <label for="regret_days">Arrependimento</label>
-            <span class="text-field__supporting">Fixo por lei (CDC art. 49). Reembolso sempre disponível.</span>
+            <span class="text-field__supporting">Fixo por lei (CDC art. 49). Devolução do dinheiro sempre disponível.</span>
           </div>
           <%= m3_field f, :defect_window_days, "Defeito, avaria e erro no pedido (dias)", as: :number_field, min: 30,
                        hint: "Mínimo legal: 30 dias (não duráveis) ou 90 dias (duráveis)." %>
@@ -57,8 +57,8 @@
       <section class="card card--primary">
         <h2 class="title-medium card__title"><%= icon "gavel" %> O que a lei garante</h2>
         <ul class="body-small plain-list">
-          <li><strong>Compra online:</strong> 7 dias da entrega para desistir, sem justificativa, com reembolso integral (inclusive frete).</li>
-          <li><strong>Defeito:</strong> análise e solução em até 30 dias — troca, reembolso ou abatimento.</li>
+          <li><strong>Compra online:</strong> 7 dias da entrega para desistir, sem justificativa, com devolução integral do dinheiro (inclusive frete).</li>
+          <li><strong>Defeito:</strong> análise e solução em até 30 dias — troca, devolução do dinheiro ou abatimento.</li>
           <li><strong>Troca por tamanho/cor/gosto:</strong> depende só da política da loja.</li>
         </ul>
       </section>

@@ -36,17 +36,27 @@
     </section>
   <% end %>
 
-  <% if er.invoice_url.present? && !er.completed? %>
-    <div class="banner banner--warning"><%= icon "payments" %>
-      <div>A nova peça tem diferença de preço. <%= link_to "Pague o complemento aqui", er.invoice_url, class: "strong-link", target: "_blank", rel: "noopener" %> para liberarmos o envio.</div>
-    </div>
-  <% end %>
-
   <% if er.coupon_code.present? %>
     <section class="card">
-      <h2 class="title-small card__title"><%= icon "redeem" %> Seu crédito</h2>
+      <h2 class="title-small card__title"><%= icon "redeem" %> Seu cupom</h2>
       <div class="coupon"><code><%= er.coupon_code %></code></div>
-      <% if er.credit_amount %><p class="body-small muted">Valor: <%= brl er.credit_amount %></p><% end %>
+      <p class="body-small muted">Use no carrinho da loja<%= " · valor #{brl er.credit_amount}" if er.credit_amount %> · uso único.</p>
+    </section>
+  <% end %>
+
+  <% if er.exchange_refunds.any? %>
+    <section class="card">
+      <h2 class="title-small card__title"><%= icon "currency_exchange" %> Devolução do dinheiro</h2>
+      <ul class="refund-list">
+        <% er.exchange_refunds.each do |refund| %>
+          <li class="refund-item__head">
+            <div><strong><%= brl refund.amount %></strong> · <%= refund.method_label %> · <%= refund.status_label %></div>
+            <% if refund.receipt.attached? %>
+              <%= link_to url_for(refund.receipt), target: "_blank", rel: "noopener", class: "btn btn--text btn--small" do %><%= icon "receipt_long" %> Ver comprovante<% end %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
     </section>
   <% end %>
 
@@ -56,7 +66,7 @@
         <div class="item-row__body">
           <div class="title-small"><%= item.product_name %></div>
           <div class="body-small muted"><%= [ item.variant_title.presence, "Qtd. #{item.quantity}", item.reason_label ].compact.join(" · ") %></div>
-          <div class="chip-row"><span class="assist-chip assist-chip--small"><%= item.resolution_label %><%= " → #{item.new_variant_title}" if item.new_variant_title.present? %></span></div>
+          <div class="chip-row"><span class="assist-chip assist-chip--small"><%= item.resolution_label %></span></div>
         </div>
       </li>
     <% end %>

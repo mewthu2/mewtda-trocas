@@ -67,12 +67,17 @@ class ExchangeRequest < ApplicationRecord
     items_with("refund").sum(&:subtotal)
   end
 
-  def credit_items_total
-    items_with("store_credit", "other_product").sum(&:subtotal)
+  def coupon_items_total
+    items_with("coupon").sum(&:subtotal)
   end
 
-  def replacement_items
-    items_with("same_variant", "other_variant")
+  def refund_method_label
+    ExchangeRefund::METHODS[refund_method]
+  end
+
+  # Dados bancários informados pelo cliente para Pix/transferência.
+  def bank_details
+    (refund_details || {}).slice("pix_key", "bank_name", "bank_agency", "bank_account", "account_holder", "holder_document").compact_blank
   end
 
   def customer_pays_shipping?

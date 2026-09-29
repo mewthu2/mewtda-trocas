@@ -2,7 +2,7 @@ class ExchangeRequestItem < ApplicationRecord
   belongs_to :exchange_request
   has_one_attached :photo
 
-  # "troca" = sai um produto novo (ou reparo); "devolucao" = volta dinheiro/crédito.
+  # "troca" = vira cupom (ou reparo); "devolucao" = dinheiro de volta.
   enum :kind, { troca: 0, devolucao: 1 }
 
   KIND_LABELS = { "troca" => "Troca", "devolucao" => "Devolução" }.freeze
@@ -35,21 +35,6 @@ class ExchangeRequestItem < ApplicationRecord
 
   def subtotal
     price.to_f * quantity.to_i
-  end
-
-  # Preço usado na comparação com a nova peça (pago ou atual, conforme a loja).
-  def comparison_price(basis)
-    basis == "current" && current_price.present? ? current_price.to_f : price.to_f
-  end
-
-  def price_difference(basis)
-    return 0 unless resolution == "other_variant" && new_variant_price.present?
-
-    ((new_variant_price.to_f - comparison_price(basis)) * quantity.to_i).round(2)
-  end
-
-  def replacement_variant_id
-    resolution == "other_variant" ? new_variant_id : shopify_variant_id
   end
 
   private

@@ -22,7 +22,6 @@ module Exchange
       when "received" then Receive.new(@exchange_request, user: @user).call
       when "rejected"
         @exchange_request.update!(status: :rejected, rejection_reason: rejection_reason.presence)
-        release_reservation
         message = [ "Solicitação não aprovada.", rejection_reason.presence ].compact.join(" ")
         Exchange::Notify.call(@exchange_request, "rejected", public_message: message)
       when "completed"
@@ -30,15 +29,6 @@ module Exchange
         Exchange::Notify.call(@exchange_request, "completed", public_message: "Solicitação concluída.")
       end
       true
-    end
-
-    private
-
-    def release_reservation
-      return if @exchange_request.replacement_draft_order_id.blank?
-
-      @exchange_request.log!("stock_released", "Reserva de estoque não será usada (rascunho #{@exchange_request.replacement_draft_order_id}).",
-                             user: @user)
     end
   end
 end

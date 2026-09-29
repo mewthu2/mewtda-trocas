@@ -1,6 +1,6 @@
 class ExchangeConfig < ApplicationRecord
   EMAIL_KINDS = %w[requested approved rejected completed].freeze
-  # Etapas extras (sem imagem de destaque) introduzidas com o frete reverso e o reembolso.
+  # Etapas extras (sem imagem de destaque) introduzidas com o frete reverso e a devolução do dinheiro.
   EXTRA_EMAIL_KINDS = %w[label_issued received refunded].freeze
   MESSAGE_KINDS = %w[requested approved rejected label_issued received completed refunded].freeze
 
@@ -14,27 +14,15 @@ class ExchangeConfig < ApplicationRecord
     "ponto" => "Ponto de entrega / armário inteligente",
     "loja" => "Entrega em loja física"
   }.freeze
-  PRICE_BASES = { "paid" => "Preço pago no pedido", "current" => "Preço atual do produto" }.freeze
-  HIGHER_PRICE_ACTIONS = { "charge" => "Cobrar o complemento do cliente", "absorb" => "Loja absorve a diferença" }.freeze
-  LOWER_PRICE_ACTIONS = {
-    "refund" => "Devolver a diferença (reembolso)",
-    "credit" => "Gerar crédito com a diferença",
-    "absorb" => "Não devolver a diferença"
-  }.freeze
-  RESERVE_STOCK_ON = {
-    "request" => "Ao abrir a solicitação",
-    "approval" => "Após a aprovação",
-    "inspection" => "Somente após conferência",
-    "never" => "Não reservar"
-  }.freeze
   RESOLVE_ON = {
     "approval" => "Na aprovação",
     "inspection" => "Após receber e conferir o produto"
   }.freeze
-  CREDIT_TYPES = {
-    "coupon" => "Cupom de desconto (uso único)",
-    "gift_card" => "Vale-presente Shopify (permite uso parcial)",
-    "store_credit" => "Crédito na conta do cliente Shopify (permite uso parcial)"
+
+  REFUND_METHODS = {
+    "estorno" => "Estorno no meio de pagamento da compra",
+    "pix" => "Pix",
+    "transferencia" => "Transferência bancária"
   }.freeze
 
   belongs_to :client
@@ -66,7 +54,7 @@ class ExchangeConfig < ApplicationRecord
     approved: {
       subject: "Sua solicitação foi aprovada!",
       body: "Olá {{customer_name}},\n\nSua solicitação para o pedido {{order_number}} foi aprovada.\n\n" \
-            "Use o cupom {{coupon_code}} na sua próxima compra.\n\nObrigado!"
+            "Acompanhe o envio do produto, o cupom e a devolução em {{tracking_url}}\n\nObrigado!"
     },
     rejected: {
       subject: "Sobre sua solicitação de troca/devolução",
@@ -90,9 +78,9 @@ class ExchangeConfig < ApplicationRecord
             "Em breve concluímos sua solicitação."
     },
     refunded: {
-      subject: "Seu reembolso foi registrado",
-      body: "Olá {{customer_name}},\n\nRegistramos o reembolso de {{refund_amount}} referente ao pedido {{order_number}}. " \
-            "O prazo para aparecer depende da forma de pagamento."
+      subject: "Devolvemos o seu dinheiro",
+      body: "Olá {{customer_name}},\n\nFizemos a devolução de {{refund_amount}} ({{refund_method}}) referente ao pedido {{order_number}}.\n\n" \
+            "O comprovante está em {{tracking_url}}"
     }
   }.freeze
 
@@ -103,7 +91,7 @@ class ExchangeConfig < ApplicationRecord
     label_issued: "{{customer_name}}, seu código de postagem é {{return_code}} (válido até {{return_expires_at}}).",
     received: "{{customer_name}}, recebemos o produto do pedido {{order_number}} e ele está em conferência.",
     completed: "{{customer_name}}, sua solicitação do pedido {{order_number}} foi concluída. Obrigado!",
-    refunded: "{{customer_name}}, registramos o reembolso de {{refund_amount}} do pedido {{order_number}}."
+    refunded: "{{customer_name}}, devolvemos {{refund_amount}} ({{refund_method}}) do pedido {{order_number}}. Comprovante: {{tracking_url}}"
   }.freeze
 
   before_create :generate_slug
@@ -115,7 +103,7 @@ class ExchangeConfig < ApplicationRecord
   validates :return_window_days, numericality: { only_integer: true, greater_than: 0 }
   validates :coupon_validity_days, numericality: { only_integer: true, greater_than: 0 }
   validates :defect_window_days, numericality: { only_integer: true, greater_than_or_equal_to: 30 }
-  validates :reserve_hours, :abuse_max_requests, :abuse_window_days,
+  validates :abuse_max_requests, :abuse_window_days,
             numericality: { only_integer: true, greater_than: 0 }
   validates :analysis_sla_days, :refund_sla_days, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :free_shipping_above, :auto_approve_max_value, :customer_shipping_flat_fee,
@@ -123,13 +111,9 @@ class ExchangeConfig < ApplicationRecord
   validates :company_name, presence: true, if: :active?
   validates :support_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :window_base, inclusion: { in: WINDOW_BASES.keys }
-  validates :price_basis, inclusion: { in: PRICE_BASES.keys }
-  validates :higher_price_action, inclusion: { in: HIGHER_PRICE_ACTIONS.keys }
-  validates :lower_price_action, inclusion: { in: LOWER_PRICE_ACTIONS.keys }
-  validates :reserve_stock_on, inclusion: { in: RESERVE_STOCK_ON.keys }
   validates :resolve_on, inclusion: { in: RESOLVE_ON.keys }
-  validates :credit_type, inclusion: { in: CREDIT_TYPES.keys }
   validate :at_least_one_return_mode
+  validate :at_least_one_refund_method
   validate :at_least_one_active_reason
 
   # Só as 4 etapas originais têm imagem de destaque.
@@ -176,10 +160,6 @@ class ExchangeConfig < ApplicationRecord
     "https://wa.me/#{digits.start_with?('55') ? digits : "55#{digits}"}"
   end
 
-  def partial_credit?
-    credit_type != "coupon"
-  end
-
   private
 
   def apply_default_email_content
@@ -202,6 +182,11 @@ class ExchangeConfig < ApplicationRecord
 
   def normalize_return_modes
     self.return_modes = Array(return_modes).compact_blank.uniq & RETURN_MODES.keys
+    self.refund_methods = Array(refund_methods).compact_blank.uniq & REFUND_METHODS.keys
+  end
+
+  def at_least_one_refund_method
+    errors.add(:refund_methods, "escolha ao menos uma forma de devolver o dinheiro") if refund_methods.blank?
   end
 
   def at_least_one_return_mode
