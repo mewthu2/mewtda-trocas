@@ -1,0 +1,14 @@
+<% content_for :title, "Solicitação enviada" %>
+
+<div class="public-card public-card--center">
+  <%= render "header" %>
+  <%= render "steps", current: 3 %>
+
+  <span class="success-mark"><%= icon "check" %></span>
+  <h1 class="headline-small">Solicitação enviada!</h1>
+  <p class="body-medium muted">
+    Recebemos seu pedido de troca/devolução do pedido <strong><%= @order[:number] %></strong>.
+    Você vai receber as atualizações em <strong><%= params[:email] %></strong>.
+  </p>
+  <%= link_to public_exchange_path(@config.slug), class: "btn btn--text" do %><%= icon "add" %> Nova solicitação<% end %>
+</div>

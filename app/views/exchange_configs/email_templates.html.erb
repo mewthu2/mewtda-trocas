@@ -1,0 +1,91 @@
+<% content_for :title, "E-mails" %>
+<% c = @exchange_config %>
+<%
+  kinds = [
+    [ "requested", "Recebida", "inbox", "Enviado assim que o cliente registra a solicitação." ],
+    [ "approved", "Aprovada", "thumb_up", "Enviado na aprovação — inclui o cupom quando há item de troca." ],
+    [ "rejected", "Rejeitada", "block", "Enviado quando a equipe rejeita a solicitação." ],
+    [ "completed", "Concluída", "task_alt", "Enviado quando a solicitação é marcada como concluída." ]
+  ]
+%>
+
+<div class="page-header">
+  <div>
+    <h1 class="headline-small">E-mails</h1>
+    <p class="body-medium muted">Mensagens automáticas enviadas ao cliente em cada etapa</p>
+  </div>
+</div>
+
+<% unless current_client.ses_domain_verified? %>
+  <div class="banner banner--warning">
+    <%= icon "warning" %>
+    <div>Os e-mails só são enviados depois que o domínio de envio da loja for verificado na SES — isso é feito no mewtda-painel, em <strong>Config. de E-mail</strong>.</div>
+  </div>
+<% end %>
+
+<%= form_errors c %>
+
+<div data-controller="email-preview"
+     data-email-preview-images-value="<%= kinds.to_h { |k, *| [ k, (url_for(c.email_image(k)) if c.email_image(k).attached?) ] }.to_json %>"
+     data-email-preview-coupon-value="RECAB12CD34">
+  <div class="tabs" role="tablist">
+    <% kinds.each_with_index do |(kind, label, ic, _), i| %>
+      <button type="button" role="tab" class="tabs__tab <%= 'is-active' if i.zero? %>"
+              data-email-preview-target="tab" data-kind="<%= kind %>" data-action="email-preview#select">
+        <%= icon ic %><span><%= label %></span>
+      </button>
+    <% end %>
+  </div>
+
+  <div class="grid grid--editor">
+    <%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, class: "card" do |f| %>
+      <% kinds.each_with_index do |(kind, label, _, description), i| %>
+        <div class="tab-panel" data-email-preview-target="panel" data-kind="<%= kind %>" <%= "hidden" unless i.zero? %>>
+          <p class="body-medium muted panel-intro"><%= description %></p>
+          <%= m3_field f, :"#{kind}_email_subject", "Assunto", data: { action: "input->email-preview#render", role: "subject" } %>
+          <%= m3_field f, :"#{kind}_email_body", "Mensagem", as: :text_area, rows: 9,
+                       data: { action: "input->email-preview#render", role: "body" },
+                       hint: "Variáveis: {{customer_name}}, {{order_number}}#{', {{coupon_code}}' if kind == 'approved'}" %>
+
+          <div class="upload">
+            <div class="upload__body">
+              <div class="title-small">Imagem de destaque (opcional)</div>
+              <label class="btn btn--outlined btn--small">
+                <%= icon "add_photo_alternate" %> Escolher imagem
+                <%= f.file_field :"#{kind}_email_image", accept: "image/*", class: "visually-hidden",
+                                 data: { action: "change->email-preview#image", kind: kind } %>
+              </label>
+              <% if c.email_image(kind).attached? %>
+                <label class="checkbox-inline"><%= check_box_tag "exchange_config[remove_#{kind}_email_image]", "1" %> Remover imagem atual</label>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%= hidden_field_tag :return_to, "email_templates" %>
+      <div class="form-actions">
+        <%= f.button type: "submit", class: "btn btn--filled", data: { turbo_submits_with: "Salvando…" } do %>
+          <%= icon "save" %> Salvar e-mails
+        <% end %>
+      </div>
+    <% end %>
+
+    <aside class="card email-preview">
+      <div class="email-preview__bar"><%= icon "visibility" %> Pré-visualização</div>
+      <div class="email-preview__meta">
+        <span class="body-small muted">De: naoresponda@<%= current_client.email_sending_domain.presence || "sualoja.com.br" %></span>
+        <strong class="title-small" data-email-preview-target="subject"></strong>
+      </div>
+      <div class="email-preview__canvas">
+        <div class="email-preview__mail" style="--mail-accent: <%= c.accent_color.presence || '#1b873f' %>">
+          <% if c.logo.attached? %><div class="email-preview__logo"><%= image_tag url_for(c.logo), alt: "" %></div><% end %>
+          <img class="email-preview__image" data-email-preview-target="image" alt="" hidden>
+          <h3 data-email-preview-target="heading"></h3>
+          <div class="email-preview__body" data-email-preview-target="body"></div>
+          <div class="email-preview__footer"><%= c.company_name.presence || current_client.name %></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

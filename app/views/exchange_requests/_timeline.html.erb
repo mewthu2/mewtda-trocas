@@ -1,0 +1,18 @@
+<%
+  steps = if exchange_request.rejected?
+    [ [ "Recebida", "inbox", :done ], [ "Rejeitada", "block", :error ] ]
+  else
+    reached = { "pending" => 1, "approved" => 2, "completed" => 3 }.fetch(exchange_request.status)
+    [ [ "Recebida", "inbox" ], [ "Aprovada", "thumb_up" ], [ "Concluída", "task_alt" ] ].each_with_index.map do |(label, ic), i|
+      [ label, ic, i < reached ? :done : (i == reached ? :current : :todo) ]
+    end
+  end
+%>
+<ol class="stepper">
+  <% steps.each do |label, ic, state| %>
+    <li class="stepper__step stepper__step--<%= state %>">
+      <span class="stepper__dot"><%= icon(state == :done ? "check" : ic) %></span>
+      <span class="stepper__label"><%= label %></span>
+    </li>
+  <% end %>
+</ol>

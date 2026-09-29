@@ -1,0 +1,23 @@
+<div class="auth-card">
+  <div class="auth-card__brand">
+    <span class="brand__mark brand__mark--lg"><span class="msr">sync_alt</span></span>
+    <h1 class="headline-small">Mewtda <strong>Trocas</strong></h1>
+    <p class="body-medium muted">Entre com o mesmo acesso do painel Mewtda</p>
+  </div>
+
+  <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "stack stack--tight" }) do |f| %>
+    <div class="text-field">
+      <%= f.email_field :email, autofocus: true, autocomplete: "email", placeholder: " ", required: true %>
+      <%= f.label :email, "E-mail" %>
+    </div>
+    <div class="text-field" data-controller="password">
+      <%= f.password_field :password, autocomplete: "current-password", placeholder: " ", required: true, data: { password_target: "input" } %>
+      <%= f.label :password, "Senha" %>
+      <button type="button" class="icon-button text-field__trailing" data-action="password#toggle" aria-label="Mostrar senha">
+        <span class="msr" data-password-target="icon">visibility</span>
+      </button>
+    </div>
+    <label class="checkbox-inline"><%= f.check_box :remember_me %> Manter conectado</label>
+    <%= f.button type: "submit", class: "btn btn--filled btn--block" do %>Entrar<% end %>
+  <% end %>
+</div>

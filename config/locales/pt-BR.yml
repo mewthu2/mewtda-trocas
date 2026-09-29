@@ -1,0 +1,36 @@
+pt-BR:
+  activerecord:
+    models:
+      exchange_config: Configuração de trocas
+      exchange_request: Solicitação
+      exchange_request_item: Item
+    attributes:
+      exchange_config:
+        active: Ativo
+        company_name: Nome da empresa
+        accent_color: Cor de destaque
+        instructions: Instruções
+        return_window_days: Prazo para devolução
+        coupon_validity_days: Validade do cupom
+        logo: Logo
+      exchange_request:
+        customer_email: E-mail
+        customer_name: Nome
+        shopify_order_id: Pedido
+        shopify_order_number: Número do pedido
+      exchange_request_item:
+        product_name: Produto
+        quantity: Quantidade
+        price: Preço
+        reason: Motivo
+        photo: Foto
+  devise:
+    failure:
+      invalid: "E-mail ou senha inválidos."
+      not_found_in_database: "E-mail ou senha inválidos."
+      unauthenticated: "Faça login para continuar."
+      timeout: "Sua sessão expirou. Entre novamente."
+    sessions:
+      signed_in: ""
+      signed_out: "Você saiu."
+      already_signed_out: "Você saiu."

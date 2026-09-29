@@ -1,0 +1,16 @@
+test:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+local:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>
+
+# Fotos de defeito e logos. Em produção use S3 (disco de Heroku é efêmero) —
+# no Heroku, o add-on Bucketeer define as variáveis BUCKETEER_*.
+amazon:
+  service: S3
+  access_key_id: <%= ENV["BUCKETEER_AWS_ACCESS_KEY_ID"] || ENV["AWS_S3_ACCESS_KEY_ID"] %>
+  secret_access_key: <%= ENV["BUCKETEER_AWS_SECRET_ACCESS_KEY"] || ENV["AWS_S3_SECRET_ACCESS_KEY"] %>
+  region: <%= ENV["BUCKETEER_AWS_REGION"] || ENV.fetch("AWS_S3_REGION", "us-east-1") %>
+  bucket: <%= ENV["BUCKETEER_BUCKET_NAME"] || ENV["AWS_S3_BUCKET"] %>

@@ -1,0 +1,93 @@
+<% content_for :title, "Solicitações" %>
+
+<div class="page-header">
+  <div>
+    <h1 class="headline-small">Solicitações</h1>
+    <p class="body-medium muted">Trocas e devoluções de <%= current_client.name %></p>
+  </div>
+  <% if current_client.exchange_config&.active? %>
+    <%= link_to public_exchange_url(current_client.exchange_config.slug), target: "_blank", rel: "noopener", class: "btn btn--tonal" do %>
+      <%= icon "open_in_new" %> Página pública
+    <% end %>
+  <% end %>
+</div>
+
+<div class="stats">
+  <% [ [ nil, "Todas", "inbox", @counts.values.sum ],
+       [ "pending", "Pendentes", "hourglass_top", @counts["pending"].to_i ],
+       [ "approved", "Aprovadas", "thumb_up", @counts["approved"].to_i ],
+       [ "completed", "Concluídas", "task_alt", @counts["completed"].to_i ],
+       [ "rejected", "Rejeitadas", "block", @counts["rejected"].to_i ] ].each do |status, label, icon_name, count| %>
+    <%= link_to exchange_requests_path(status: status, q: @query.presence),
+                class: [ "stat-card", "stat-card--#{status || 'all'}", ("is-active" if @status_filter == status) ].compact.join(" ") do %>
+      <span class="stat-card__icon"><%= icon icon_name %></span>
+      <span class="stat-card__value"><%= count %></span>
+      <span class="stat-card__label"><%= label %></span>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="card card--flush">
+  <%= form_with url: exchange_requests_path, method: :get, class: "toolbar", data: { turbo_frame: "_top", controller: "auto-submit" } do %>
+    <%= hidden_field_tag :status, @status_filter %>
+    <label class="search-field">
+      <%= icon "search" %>
+      <%= search_field_tag :q, @query, placeholder: "Buscar por pedido, nome ou e-mail",
+                           data: { action: "input->auto-submit#debounced" }, autocomplete: "off" %>
+    </label>
+  <% end %>
+
+  <% if @exchange_requests.any? %>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Cliente</th>
+            <th>Itens</th>
+            <th class="num">Valor</th>
+            <th>Status</th>
+            <th>Recebida em</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @exchange_requests.each do |exchange_request| %>
+            <tr data-controller="row-link" data-row-link-url-value="<%= exchange_request_path(exchange_request) %>" data-action="click->row-link#go">
+              <td><%= link_to exchange_request.shopify_order_number, exchange_request, class: "strong-link" %></td>
+              <td>
+                <div class="cell-title"><%= exchange_request.customer_display_name %></div>
+                <% if exchange_request.customer_name.present? %><div class="cell-sub"><%= exchange_request.customer_email %></div><% end %>
+              </td>
+              <td><%= items_summary(exchange_request) %></td>
+              <td class="num"><%= brl exchange_request.total %></td>
+              <td><%= status_chip exchange_request %></td>
+              <td class="muted"><%= date_br exchange_request.created_at %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if @total_pages > 1 %>
+      <div class="pagination">
+        <span class="body-small muted">Página <%= @page %> de <%= @total_pages %> · <%= @total_count %> solicitações</span>
+        <div class="pagination__actions">
+          <%= link_to_if @page > 1, icon("chevron_left"), exchange_requests_path(request.query_parameters.merge(page: @page - 1)), class: "icon-button", aria: { label: "Anterior" } do %>
+            <span class="icon-button is-disabled"><%= icon "chevron_left" %></span>
+          <% end %>
+          <%= link_to_if @page < @total_pages, icon("chevron_right"), exchange_requests_path(request.query_parameters.merge(page: @page + 1)), class: "icon-button", aria: { label: "Próxima" } do %>
+            <span class="icon-button is-disabled"><%= icon "chevron_right" %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="empty-state">
+      <%= icon "inventory_2", class: "empty-state__icon" %>
+      <h2 class="title-medium">Nenhuma solicitação por aqui</h2>
+      <p class="body-medium muted">
+        <%= @query.present? || @status_filter ? "Tente mudar os filtros ou a busca." : "Quando um cliente pedir troca ou devolução, ela aparece aqui." %>
+      </p>
+    </div>
+  <% end %>
+</div>

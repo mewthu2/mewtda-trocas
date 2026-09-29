@@ -1,0 +1,8 @@
+#!/bin/bash -e
+
+# Prepara o banco (próprio deste app) antes de subir o servidor.
+if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
+  ./bin/rails db:prepare
+fi
+
+exec "${@}"

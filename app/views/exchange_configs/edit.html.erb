@@ -1,0 +1,88 @@
+<% content_for :title, "Configuração" %>
+<% c = @exchange_config %>
+
+<div class="page-header">
+  <div>
+    <h1 class="headline-small">Configuração</h1>
+    <p class="body-medium muted">Página pública de trocas e devoluções de <%= current_client.name %></p>
+  </div>
+</div>
+
+<%= form_errors c %>
+
+<%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, html: { autocomplete: "off" } do |f| %>
+  <div class="grid grid--detail">
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "public" %> Página pública</h2>
+        <%= m3_switch f, :active, "Página ativa", "Quando desligada, o link público mostra “indisponível”." %>
+        <%= m3_field f, :company_name, "Nome da empresa", hint: "Aparece no topo da página pública e no rodapé dos e-mails." %>
+        <%= m3_field f, :instructions, "Instruções para o cliente", as: :text_area, rows: 4,
+                     hint: "Texto de apoio mostrado acima do formulário de busca." %>
+      </section>
+
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "rule" %> Regras</h2>
+        <div class="field-row">
+          <%= m3_field f, :return_window_days, "Prazo para devolução (dias)", as: :number_field, min: 1,
+                       hint: "Contado a partir do envio. Depois disso, só troca." %>
+          <%= m3_field f, :coupon_validity_days, "Validade do cupom (dias)", as: :number_field, min: 1,
+                       hint: "Cupom de uso único gerado na aprovação, no valor dos itens de troca." %>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "palette" %> Marca</h2>
+        <div class="color-field" data-controller="color">
+          <%= f.color_field :accent_color, data: { color_target: "input", action: "input->color#sync" } %>
+          <div>
+            <div class="title-small">Cor de destaque</div>
+            <div class="body-small muted" data-color-target="label"><%= c.accent_color %></div>
+          </div>
+        </div>
+
+        <div class="upload" data-controller="upload-preview">
+          <div class="upload__preview" data-upload-preview-target="preview">
+            <% if c.logo.attached? %>
+              <%= image_tag url_for(c.logo), alt: "Logo atual" %>
+            <% else %>
+              <%= icon "image" %>
+            <% end %>
+          </div>
+          <div class="upload__body">
+            <div class="title-small">Logo</div>
+            <label class="btn btn--outlined btn--small">
+              <%= icon "upload" %> Escolher arquivo
+              <%= f.file_field :logo, accept: "image/*", class: "visually-hidden", data: { action: "change->upload-preview#show" } %>
+            </label>
+            <% if c.logo.attached? %>
+              <label class="checkbox-inline"><%= check_box_tag "exchange_config[remove_logo]", "1" %> Remover logo</label>
+            <% end %>
+          </div>
+        </div>
+      </section>
+
+      <section class="card card--primary">
+        <h2 class="title-medium card__title"><%= icon "link" %> Link público</h2>
+        <% if c.persisted? %>
+          <div class="coupon" data-controller="clipboard" data-clipboard-text-value="<%= public_exchange_url(c.slug) %>">
+            <code class="truncate"><%= public_exchange_url(c.slug) %></code>
+            <button type="button" class="icon-button" data-action="clipboard#copy" aria-label="Copiar link"><%= icon "content_copy" %></button>
+          </div>
+          <p class="body-small muted">Coloque este link no site da loja (rodapé, página de políticas, e-mail pós-venda).</p>
+        <% else %>
+          <p class="body-small muted">Salve a configuração para gerar o link.</p>
+        <% end %>
+      </section>
+    </div>
+  </div>
+
+  <%= hidden_field_tag :return_to, "edit" %>
+  <div class="sticky-actions">
+    <%= f.button type: "submit", class: "btn btn--filled", data: { turbo_submits_with: "Salvando…" } do %>
+      <%= icon "save" %> Salvar configuração
+    <% end %>
+  </div>
+<% end %>

@@ -1,0 +1,10 @@
+<div class="snackbar-host" id="snackbars">
+  <% flash.each do |type, message| %>
+    <% next if message.blank? %>
+    <div class="snackbar snackbar--<%= type == "alert" ? "error" : "info" %>" role="status" data-controller="snackbar">
+      <span class="msr"><%= type == "alert" ? "error" : "check_circle" %></span>
+      <span class="snackbar__text"><%= message %></span>
+      <button type="button" class="icon-button" data-action="snackbar#close" aria-label="Fechar"><span class="msr">close</span></button>
+    </div>
+  <% end %>
+</div>

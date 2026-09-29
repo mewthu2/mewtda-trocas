@@ -1,0 +1,8 @@
+<div class="public-header">
+  <% if @config.logo.attached? %>
+    <%= image_tag url_for(@config.logo), alt: @config.company_name, class: "public-header__logo" %>
+  <% else %>
+    <span class="public-header__mark"><%= icon "sync_alt" %></span>
+  <% end %>
+  <div class="overline"><%= @config.company_name %></div>
+</div>

@@ -1,0 +1,18 @@
+# Em produção o banco é o Heroku Postgres próprio do app mewtda-troca (via
+# DATABASE_URL), separado do mewtda-painel. Migrations rodam no release (Procfile).
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *default
+  database: mewtda_trocas_development
+
+test:
+  <<: *default
+  database: mewtda_trocas_test
+
+production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>

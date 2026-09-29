@@ -1,0 +1,28 @@
+<% content_for :title, "Trocas e devoluções" %>
+
+<div class="public-card">
+  <%= render "header" %>
+  <%= render "steps", current: 0 %>
+
+  <h1 class="headline-small">Trocas e devoluções</h1>
+  <% if @config.instructions.present? %>
+    <div class="body-medium muted instructions"><%= simple_format(@config.instructions) %></div>
+  <% else %>
+    <p class="body-medium muted">Informe o número do pedido e o e-mail usado na compra para começar.</p>
+  <% end %>
+
+  <%= form_with url: public_exchange_lookup_path(@config.slug), method: :post, class: "stack stack--tight" do %>
+    <div class="text-field">
+      <%= text_field_tag :order_number, params[:order_number], placeholder: " ", required: true, autocomplete: "off", inputmode: "numeric" %>
+      <label for="order_number">Número do pedido</label>
+      <span class="text-field__supporting">Ex.: #1001 — está no e-mail de confirmação da compra.</span>
+    </div>
+    <div class="text-field">
+      <%= email_field_tag :email, params[:email], placeholder: " ", required: true, autocomplete: "email" %>
+      <label for="email">E-mail da compra</label>
+    </div>
+    <%= button_tag type: "submit", class: "btn btn--filled btn--accent btn--block", data: { turbo_submits_with: "Buscando pedido…" } do %>
+      <%= icon "search" %> Buscar pedido
+    <% end %>
+  <% end %>
+</div>

@@ -1,0 +1,11 @@
+<% content_for :title, "Selecione uma loja" %>
+<div class="empty-state">
+  <span class="msr empty-state__icon">storefront</span>
+  <h1 class="headline-small">
+    <%= current_user.admin? ? "Selecione uma loja" : "Nenhuma loja vinculada" %>
+  </h1>
+  <p class="body-medium muted">
+    <%= current_user.admin? ? "Escolha a loja no seletor do topo para ver as trocas e devoluções." :
+                             "Seu usuário não está vinculado a nenhuma loja. Fale com a equipe Mewtda." %>
+  </p>
+</div>

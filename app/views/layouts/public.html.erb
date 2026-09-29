@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= [ content_for(:title), @config&.company_name.presence || "Trocas e Devoluções" ].compact.join(" · ") %></title>
+    <meta name="robots" content="noindex">
+    <%= render "layouts/partials/head" %>
+    <% if @config&.accent_color.present? %>
+      <style>:root { --accent: <%= @config.accent_color %>; }</style>
+    <% end %>
+  </head>
+
+  <body class="public">
+    <main class="public__main">
+      <%= yield %>
+    </main>
+    <footer class="public__footer">Central de trocas e devoluções</footer>
+    <%= render "shared/snackbar" %>
+  </body>
+</html>

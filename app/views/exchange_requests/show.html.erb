@@ -1,0 +1,117 @@
+<% content_for :title, "Pedido #{@exchange_request.shopify_order_number}" %>
+<% er = @exchange_request %>
+
+<div class="page-header">
+  <div class="page-header__lead">
+    <%= link_to exchange_requests_path, class: "icon-button", aria: { label: "Voltar" } do %><%= icon "arrow_back" %><% end %>
+    <div>
+      <h1 class="headline-small">Pedido <%= er.shopify_order_number %> <%= status_chip er %></h1>
+      <p class="body-medium muted">Recebida em <%= date_br er.created_at %></p>
+    </div>
+  </div>
+
+  <div class="page-header__actions">
+    <% if er.pending? %>
+      <%= button_to exchange_request_path(er), method: :patch, params: { status: "rejected" }, class: "btn btn--outlined btn--danger",
+                    form: { data: { turbo_confirm: "Rejeitar esta solicitação? O cliente será avisado por e-mail." } } do %>
+        <%= icon "block" %> Rejeitar
+      <% end %>
+      <%= button_to exchange_request_path(er), method: :patch, params: { status: "approved" }, class: "btn btn--filled",
+                    form: { data: { turbo_confirm: er.troca_total.positive? ? "Aprovar e gerar cupom de #{brl er.troca_total} na Shopify?" : "Aprovar esta solicitação?" } } do %>
+        <%= icon "check" %> Aprovar
+      <% end %>
+    <% elsif er.approved? %>
+      <%= button_to exchange_request_path(er), method: :patch, params: { status: "completed" }, class: "btn btn--filled",
+                    form: { data: { turbo_confirm: "Marcar como concluída? O cliente será avisado por e-mail." } } do %>
+        <%= icon "task_alt" %> Marcar como concluída
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<%= render "timeline", exchange_request: er %>
+
+<div class="grid grid--detail">
+  <section class="card">
+    <h2 class="title-medium card__title"><%= icon "shopping_bag" %> Itens</h2>
+    <ul class="item-list">
+      <% er.exchange_request_items.each do |item| %>
+        <li class="item-row">
+          <% if item.photo.attached? %>
+            <%= link_to url_for(item.photo), target: "_blank", rel: "noopener", class: "item-row__thumb" do %>
+              <%= image_tag url_for(item.photo), alt: "Foto enviada pelo cliente", loading: "lazy" %>
+            <% end %>
+          <% else %>
+            <span class="item-row__thumb item-row__thumb--empty"><%= icon "checkroom" %></span>
+          <% end %>
+          <div class="item-row__body">
+            <div class="title-small"><%= item.product_name %></div>
+            <div class="body-small muted">
+              <%= [ item.variant_title.presence, ("SKU #{item.sku}" if item.sku.present?), "Qtd. #{item.quantity}" ].compact.join(" · ") %>
+            </div>
+            <div class="chip-row">
+              <span class="kind-chip kind-chip--<%= item.kind %>"><%= icon(item.troca? ? "swap_horiz" : "undo") %><%= item.kind_label %></span>
+              <span class="assist-chip assist-chip--small"><%= item.reason_label %></span>
+            </div>
+          </div>
+          <div class="item-row__price title-small"><%= brl item.subtotal %></div>
+        </li>
+      <% end %>
+    </ul>
+    <div class="totals">
+      <% if er.troca_total.positive? %>
+        <div><span class="muted">Valor em trocas (vira cupom)</span><strong><%= brl er.troca_total %></strong></div>
+      <% end %>
+      <div><span class="muted">Total da solicitação</span><strong><%= brl er.total %></strong></div>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <h2 class="title-medium card__title"><%= icon "person" %> Cliente</h2>
+      <dl class="details">
+        <dt>Nome</dt><dd><%= er.customer_name.presence || "—" %></dd>
+        <dt>E-mail</dt><dd><%= mail_to er.customer_email %></dd>
+        <dt>Pedido Shopify</dt>
+        <dd>
+          <% if current_client.shopify_shop_url.present? %>
+            <%= link_to "#{er.shopify_order_number} #{icon('open_in_new', class: 'msr--sm')}".html_safe,
+                        "https://#{current_client.shopify_shop_url.sub(%r{\Ahttps?://}, '')}/admin/orders/#{er.shopify_order_id}",
+                        target: "_blank", rel: "noopener" %>
+          <% else %>
+            <%= er.shopify_order_number %>
+          <% end %>
+        </dd>
+      </dl>
+    </section>
+
+    <% if er.coupon_code.present? %>
+      <section class="card card--primary">
+        <h2 class="title-medium card__title"><%= icon "confirmation_number" %> Cupom gerado</h2>
+        <div class="coupon" data-controller="clipboard" data-clipboard-text-value="<%= er.coupon_code %>">
+          <code><%= er.coupon_code %></code>
+          <button type="button" class="icon-button" data-action="clipboard#copy" aria-label="Copiar cupom"><%= icon "content_copy" %></button>
+        </div>
+        <p class="body-small muted">Uso único, no valor de <%= brl er.troca_total %>.</p>
+      </section>
+    <% elsif er.approved? && er.troca_total.positive? %>
+      <section class="card card--warning">
+        <h2 class="title-medium card__title"><%= icon "warning" %> Cupom não gerado</h2>
+        <p class="body-small">A Shopify não criou o cupom. Verifique o token da loja (precisa da permissão <code>write_discounts</code>) e crie o cupom manualmente se preciso.</p>
+      </section>
+    <% end %>
+
+    <section class="card">
+      <h2 class="title-medium card__title"><%= icon "sticky_note_2" %> Nota interna</h2>
+      <%= form_with url: exchange_request_path(er), method: :patch do %>
+        <div class="text-field text-field--textarea">
+          <%= text_area_tag :internal_notes, er.internal_notes, rows: 4, placeholder: " ", id: "internal_notes" %>
+          <label for="internal_notes">Visível só para a equipe</label>
+        </div>
+        <div class="form-actions">
+          <%= button_tag type: "submit", class: "btn btn--tonal" do %><%= icon "save" %> Salvar nota<% end %>
+        </div>
+      <% end %>
+    </section>
+  </div>
+</div>

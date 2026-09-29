@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= [ content_for(:title), "Mewtda Trocas" ].compact.join(" · ") %></title>
+    <%= render "layouts/partials/head" %>
+  </head>
+
+  <body class="app">
+    <header class="top-app-bar">
+      <%= link_to authenticated_root_path, class: "brand" do %>
+        <span class="brand__mark"><span class="msr">sync_alt</span></span>
+        <span class="brand__name">Mewtda <strong>Trocas</strong></span>
+      <% end %>
+
+      <div class="top-app-bar__actions">
+        <% if selectable_clients.any? %>
+          <%= form_with url: current_client_path, method: :patch, class: "client-switcher", data: { controller: "auto-submit" } do %>
+            <span class="msr">storefront</span>
+            <%= select_tag :client_id, options_from_collection_for_select(selectable_clients, :id, :name, current_client&.id),
+                           prompt: "Selecione a loja", data: { action: "change->auto-submit#submit" }, aria: { label: "Loja" } %>
+          <% end %>
+        <% elsif current_client %>
+          <span class="assist-chip"><span class="msr">storefront</span><%= current_client.name %></span>
+        <% end %>
+
+        <details class="menu" data-controller="dismissable">
+          <summary class="avatar" title="<%= current_user.display_name %>"><%= current_user.display_name.first.upcase %></summary>
+          <div class="menu__surface">
+            <div class="menu__header">
+              <strong><%= current_user.display_name %></strong>
+              <span><%= current_user.email %></span>
+            </div>
+            <%= button_to destroy_user_session_path, method: :delete, class: "menu__item", data: { turbo: false } do %>
+              <span class="msr">logout</span> Sair
+            <% end %>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <nav class="nav-rail" aria-label="Navegação principal">
+      <%= nav_item "Solicitações", "inbox", exchange_requests_path, active: controller_name == "exchange_requests" %>
+      <%= nav_item "Configuração", "tune", edit_exchange_config_path, active: controller_name == "exchange_configs" && action_name != "email_templates" && params[:return_to] != "email_templates" %>
+      <%= nav_item "E-mails", "mail", email_templates_exchange_config_path, active: action_name == "email_templates" || params[:return_to] == "email_templates" %>
+    </nav>
+
+    <main class="main">
+      <%= yield %>
+    </main>
+
+    <%= render "shared/snackbar" %>
+  </body>
+</html>
