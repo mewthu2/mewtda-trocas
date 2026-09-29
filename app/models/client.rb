@@ -49,4 +49,9 @@ class Client < ApplicationRecord
   def zapi_configured?
     zapi_instance_id.present? && zapi_instance_token.present? && zapi_client_token.present?
   end
+
+  # WhatsApp sai pela instância Z-API da loja ou, sem ela, pela instância global da Mewtda.
+  def whatsapp_available?
+    zapi_configured? || %w[ZAPI_INSTANCE_ID ZAPI_INSTANCE_TOKEN ZAPI_CLIENT_TOKEN].all? { |key| ENV[key].present? }
+  end
 end

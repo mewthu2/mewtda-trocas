@@ -19,7 +19,7 @@
   <%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, class: "card" do |f| %>
     <h2 class="title-medium card__title"><%= icon "campaign" %> Canais e prazos prometidos</h2>
     <%= m3_switch f, :email_enabled, "E-mail", "Enviado pelo domínio da loja (ao lado)." %>
-    <%= m3_switch f, :whatsapp_enabled, "WhatsApp", current_client.zapi_configured? ? "Pela instância Z-API da loja." : "A loja ainda não tem instância Z-API cadastrada — as mensagens não serão enviadas." %>
+    <%= m3_switch f, :whatsapp_enabled, "WhatsApp", current_client.whatsapp_available? ? (current_client.zapi_configured? ? "Pela instância Z-API da loja." : "Pelo WhatsApp da Mewtda.") : "Nenhuma instância Z-API configurada — as mensagens não serão enviadas." %>
     <%= m3_switch f, :tracking_page_enabled, "Página de acompanhamento", "O cliente vê o andamento pelo link {{tracking_url}}." %>
     <div class="field-row">
       <%= m3_field f, :analysis_sla_days, "Prazo de análise (dias úteis)", as: :number_field, min: 0 %>

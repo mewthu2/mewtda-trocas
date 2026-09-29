@@ -1,11 +1,12 @@
-# WhatsApp ao cliente final em cada etapa, pela instância Z-API da loja.
+# WhatsApp ao cliente final em cada etapa, pela instância Z-API da loja (ou a
+# global da Mewtda).
 class SendExchangeWhatsappJob < ApplicationJob
   queue_as :default
 
   def perform(exchange_request_id:, kind:)
     request = ExchangeRequest.find(exchange_request_id)
     client = request.client
-    return unless client.zapi_configured? && request.customer_phone.present?
+    return unless client.whatsapp_available? && request.customer_phone.present?
 
     message = Exchange::MessageVariables.new(request).interpolate(request.config.whatsapp_body(kind))
     Zapi::Client.new(client).send_text(phone: format_phone(request.customer_phone), message: message)
