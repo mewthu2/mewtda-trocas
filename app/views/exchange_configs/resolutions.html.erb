@@ -39,6 +39,8 @@
         </p>
         <div class="title-small">Formas oferecidas ao cliente</div>
         <%= m3_checkbox_group f, :refund_methods, ExchangeConfig::REFUND_METHODS %>
+        <%= m3_switch f, :refund_original_shipping, "Devolver também o frete da compra",
+                      "Quando o pedido inteiro é devolvido. No arrependimento isso é sempre feito (exigência legal)." %>
         <%= m3_field f, :refund_sla_days, "Prazo prometido para devolver (dias úteis)", as: :number_field, min: 0 %>
       </section>
     </div>

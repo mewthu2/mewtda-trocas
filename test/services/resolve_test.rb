@@ -64,6 +64,28 @@ class ResolveTest < ActiveSupport::TestCase
     assert_equal 1, request.exchange_refunds.count
   end
 
+  test "arrependimento do pedido inteiro devolve também o frete da compra" do
+    request = create_request(@client, items: [ { resolution: "refund", price: 90, reason: "arrependimento" } ],
+                                      refund_method: "estorno", refund_details: { "all_items" => true, "order_shipping" => 15.0 })
+
+    assert Exchange::Resolve.new(request).call
+    assert_equal 105.0, request.exchange_refunds.sole.amount
+  end
+
+  test "frete da compra só entra em outros motivos se a loja optar" do
+    details = { "all_items" => true, "order_shipping" => 15.0 }
+    request = create_request(@client, items: [ { resolution: "refund", price: 90, reason: "defeito" } ],
+                                      refund_method: "estorno", refund_details: details)
+    Exchange::Resolve.new(request).call
+    assert_equal 90.0, request.exchange_refunds.sole.amount
+
+    @config.update!(refund_original_shipping: true)
+    other = create_request(@client, items: [ { resolution: "refund", price: 90, reason: "defeito" } ],
+                                    refund_method: "estorno", refund_details: details)
+    Exchange::Resolve.new(other.reload).call
+    assert_equal 105.0, other.exchange_refunds.sole.amount
+  end
+
   test "falha na Shopify é registrada no histórico sem quebrar" do
     request = create_request(@client, items: [ { resolution: "coupon", price: 50 } ])
 

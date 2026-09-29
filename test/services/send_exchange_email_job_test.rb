@@ -13,7 +13,7 @@ class SendExchangeEmailJobTest < ActiveSupport::TestCase
     end
 
     mail = ActionMailer::Base.deliveries.last
-    assert_equal [ "trocas@mewtda.com.br" ], mail.from
+    assert_equal [ "quero-trocar@mewtda.com.br" ], mail.from
     assert_equal "Loja Teste", mail[:from].display_names.first
     assert_equal [ "sac@loja.com" ], mail.reply_to
     assert_equal [ "maria@example.com" ], mail.to

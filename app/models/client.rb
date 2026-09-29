@@ -37,7 +37,7 @@ class Client < ApplicationRecord
     domain = email_from_domain
     return if domain.blank?
 
-    address = "#{email_from_local.presence || 'trocas'}@#{domain}"
+    address = "#{email_from_local.presence || 'quero-trocar'}@#{domain}"
     name = email_from_name.presence || exchange_config&.company_name.presence || self.name
     name.present? ? "#{name.delete('"<>')} <#{address}>" : address
   end

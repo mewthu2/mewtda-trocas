@@ -5,6 +5,8 @@ module Exchange
   #     estorno, Pix ou transferência e anexar o comprovante;
   #   - reparo: fica com a equipe (registrado no histórico).
   # Frete pago pelo cliente é descontado do cupom e, se sobrar, da devolução.
+  # No arrependimento com o pedido inteiro (ou se a loja optar), o frete pago na
+  # compra também é devolvido.
   class Resolve
     def initialize(request, user: nil)
       @request = request
@@ -30,11 +32,20 @@ module Exchange
     def amounts
       coupon = @request.coupon_items_total
       refund = @request.refund_total
+      refund += original_shipping if refund.positive?
       shipping = @request.customer_pays_shipping? ? @request.shipping_cost.to_f : 0
 
       from_coupon = [ coupon, shipping ].min
       from_refund = [ refund, shipping - from_coupon ].min
       [ (coupon - from_coupon).round(2), (refund - from_refund).round(2) ]
+    end
+
+    def original_shipping
+      details = @request.refund_details || {}
+      return 0 unless details["all_items"]
+
+      regret = @request.items_with("refund").any? { |item| item.reason == "arrependimento" }
+      regret || @config.refund_original_shipping? ? details["order_shipping"].to_f : 0
     end
 
     def issue_coupon(amount)

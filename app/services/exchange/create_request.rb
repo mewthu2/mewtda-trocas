@@ -29,7 +29,8 @@ module Exchange
           customer_email: @params[:email], customer_name: @params[:customer_name],
           customer_phone: @params[:customer_phone].presence || @order[:phone], customer_zip: zip,
           delivered_at: @policy.base_date, return_mode: return_mode, refund_method: refund_method,
-          refund_details: { "gateways" => @order[:gateways], "order_shipping" => @order[:shipping_paid] }.merge(bank).compact
+          refund_details: { "gateways" => @order[:gateways], "order_shipping" => @order[:shipping_paid],
+                            "all_items" => all_items?(items) }.merge(bank).compact
         )
         items.each { |attrs| @request.exchange_request_items.create!(attrs.except(:reason_record)) }
         apply_shipping(reasons, zip, items)
@@ -102,6 +103,10 @@ module Exchange
 
         [ question, answer.first(1000) ]
       end
+    end
+
+    def all_items?(items)
+      items.sum { |i| i[:quantity] } >= @order[:items].sum { |i| i[:quantity].to_i }
     end
 
     def conditions_confirmed?(reason, raw)
