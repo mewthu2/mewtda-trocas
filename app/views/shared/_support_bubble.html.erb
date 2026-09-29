@@ -1,0 +1,8 @@
+<%# Atalho flutuante para o suporte Mewtda (WhatsApp), em todas as telas da área logada. %>
+<% if ENV["SUPPORT_WHATSAPP"].present? %>
+  <%= link_to "https://wa.me/#{ENV['SUPPORT_WHATSAPP'].gsub(/\D/, '')}?text=#{ERB::Util.url_encode('Olá! Preciso de ajuda com o Quero Trocar.')}",
+              class: "support-bubble", target: "_blank", rel: "noopener", aria: { label: "Suporte 24 horas pelo WhatsApp" } do %>
+    <span class="support-bubble__icon"><%= icon "support_agent" %><span class="support-bubble__dot"></span></span>
+    <span class="support-bubble__text"><strong>Suporte 24 horas</strong><span>Fale com a gente</span></span>
+  <% end %>
+<% end %>
