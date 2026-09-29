@@ -1,0 +1,69 @@
+<% content_for :title, "Prazos e elegibilidade" %>
+<% c = @exchange_config %>
+
+<%= render "tabs" %>
+
+<%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, html: { autocomplete: "off" } do |f| %>
+  <div class="grid grid--detail">
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "event_available" %> Prazos</h2>
+        <div class="field-row">
+          <%= m3_select f, :window_base, "Contar prazo a partir da", ExchangeConfig::WINDOW_BASES.invert.to_a,
+                        hint: "Sem data de entrega na Shopify, usa a data de envio." %>
+          <%= m3_field f, :return_window_days, "Troca voluntária (dias)", as: :number_field, min: 1,
+                       hint: "Tamanho, cor, não gostei…" %>
+        </div>
+        <div class="field-row">
+          <div class="text-field is-readonly">
+            <input type="text" value="<%= ExchangeConfig::REGRET_WINDOW_DAYS %> dias" placeholder=" " readonly id="regret_days">
+            <label for="regret_days">Arrependimento</label>
+            <span class="text-field__supporting">Fixo por lei (CDC art. 49). Reembolso sempre disponível.</span>
+          </div>
+          <%= m3_field f, :defect_window_days, "Defeito, avaria e erro no pedido (dias)", as: :number_field, min: 30,
+                       hint: "Mínimo legal: 30 dias (não duráveis) ou 90 dias (duráveis)." %>
+        </div>
+      </section>
+
+      <section class="card" data-controller="nested-form">
+        <h2 class="title-medium card__title"><%= icon "tune" %> Exceções de prazo e exclusões</h2>
+        <p class="body-small muted">
+          Prazo diferente por produto, variante, tag, coleção, tag do pedido ou canal — com período opcional (ex.: compras de Natal).
+          Exclusões bloqueiam só a troca voluntária: arrependimento e defeito continuam valendo.
+        </p>
+        <div class="rule-list" data-nested-form-target="list">
+          <%= f.fields_for :exchange_rules do |rf| %>
+            <%= render "rule_fields", f: rf %>
+          <% end %>
+        </div>
+        <template data-nested-form-target="template">
+          <%= f.fields_for :exchange_rules, ExchangeRule.new(rule_type: "window", target: "collection"), child_index: "NEW_RECORD" do |rf| %>
+            <%= render "rule_fields", f: rf %>
+          <% end %>
+        </template>
+        <div><button type="button" class="btn btn--tonal btn--small" data-action="nested-form#add"><%= icon "add" %> Adicionar regra</button></div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "checklist" %> Condições da troca voluntária</h2>
+        <p class="body-small muted">O cliente confirma estas condições ao pedir troca por tamanho, cor ou gosto. Não se aplicam a defeito ou arrependimento.</p>
+        <%= m3_switch f, :require_original_tag, "Etiqueta original", "Produto com a etiqueta da loja." %>
+        <%= m3_switch f, :require_accessories, "Acessórios", "Todos os acessórios que vieram junto." %>
+        <%= m3_switch f, :require_packaging, "Embalagem original", "Na embalagem em que foi entregue." %>
+      </section>
+
+      <section class="card card--primary">
+        <h2 class="title-medium card__title"><%= icon "gavel" %> O que a lei garante</h2>
+        <ul class="body-small plain-list">
+          <li><strong>Compra online:</strong> 7 dias da entrega para desistir, sem justificativa, com reembolso integral (inclusive frete).</li>
+          <li><strong>Defeito:</strong> análise e solução em até 30 dias — troca, reembolso ou abatimento.</li>
+          <li><strong>Troca por tamanho/cor/gosto:</strong> depende só da política da loja.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <%= render "save", section: "rules" %>
+<% end %>

@@ -1,32 +1,95 @@
-<% content_for :title, "E-mails" %>
+<% content_for :title, "Comunicação" %>
 <% c = @exchange_config %>
 <%
   kinds = [
-    [ "requested", "Recebida", "inbox", "Enviado assim que o cliente registra a solicitação." ],
-    [ "approved", "Aprovada", "thumb_up", "Enviado na aprovação — inclui o cupom quando há item de troca." ],
-    [ "rejected", "Rejeitada", "block", "Enviado quando a equipe rejeita a solicitação." ],
-    [ "completed", "Concluída", "task_alt", "Enviado quando a solicitação é marcada como concluída." ]
+    [ "requested", "Recebida", "inbox", "Assim que o cliente registra a solicitação." ],
+    [ "approved", "Aprovada", "thumb_up", "Na aprovação (manual ou automática)." ],
+    [ "rejected", "Não aprovada", "block", "Quando a equipe rejeita. Use {{rejection_reason}} para explicar." ],
+    [ "label_issued", "Postagem liberada", "local_shipping", "Quando o código de postagem/coleta é gerado." ],
+    [ "received", "Produto recebido", "inventory", "Quando a equipe confere o produto devolvido." ],
+    [ "refunded", "Reembolso", "currency_exchange", "Quando um reembolso é feito ou concluído." ],
+    [ "completed", "Concluída", "task_alt", "Quando a solicitação é encerrada." ]
   ]
+  variables = Exchange::MessageVariables::NAMES.map { |n| "{{#{n}}}" }.join(", ")
 %>
 
-<div class="page-header">
-  <div>
-    <h1 class="headline-small">E-mails</h1>
-    <p class="body-medium muted">Mensagens automáticas enviadas ao cliente em cada etapa</p>
-  </div>
+<%= render "tabs" %>
+
+<div class="grid grid--detail">
+  <%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, class: "card" do |f| %>
+    <h2 class="title-medium card__title"><%= icon "campaign" %> Canais e prazos prometidos</h2>
+    <%= m3_switch f, :email_enabled, "E-mail", "Enviado pelo domínio da loja (ao lado)." %>
+    <%= m3_switch f, :whatsapp_enabled, "WhatsApp", current_client.zapi_configured? ? "Pela instância Z-API da loja." : "A loja ainda não tem instância Z-API cadastrada — as mensagens não serão enviadas." %>
+    <%= m3_switch f, :tracking_page_enabled, "Página de acompanhamento", "O cliente vê o andamento pelo link {{tracking_url}}." %>
+    <div class="field-row">
+      <%= m3_field f, :analysis_sla_days, "Prazo de análise (dias úteis)", as: :number_field, min: 0 %>
+      <%= m3_field f, :refund_sla_days, "Prazo de reembolso (dias úteis)", as: :number_field, min: 0 %>
+    </div>
+    <%= hidden_field_tag :return_to, "email_templates" %>
+    <div class="form-actions">
+      <%= f.button type: "submit", class: "btn btn--tonal", data: { turbo_submits_with: "Salvando…" } do %><%= icon "save" %> Salvar canais<% end %>
+    </div>
+  <% end %>
+
+  <section class="card">
+    <h2 class="title-medium card__title"><%= icon "alternate_email" %> Domínio de envio dos e-mails</h2>
+    <% unless Ses::DomainIdentity.configured? %>
+      <div class="banner banner--warning"><%= icon "warning" %><div>As credenciais da Amazon SES ainda não foram configuradas no servidor (AWS_SES_ACCESS_KEY_ID / AWS_SES_SECRET_ACCESS_KEY).</div></div>
+    <% end %>
+
+    <% if current_client.email_sending_domain.blank? %>
+      <p class="body-small muted">Cadastre o domínio da loja (ex.: <code>sualoja.com.br</code>). Depois é só criar 3 registros no DNS.</p>
+      <%= form_with url: email_domain_path, method: :post, class: "stack stack--tight" do %>
+        <div class="text-field">
+          <%= text_field_tag :domain, nil, placeholder: " ", required: true, id: "email_domain" %>
+          <label for="email_domain">Domínio</label>
+        </div>
+        <div><%= button_tag type: "submit", class: "btn btn--filled btn--small" do %><%= icon "add" %> Cadastrar domínio<% end %></div>
+      <% end %>
+    <% else %>
+      <div class="chip-row">
+        <span class="assist-chip"><%= icon "language" %><%= current_client.email_sending_domain %></span>
+        <span class="status-chip status-chip--<%= current_client.ses_domain_verified? ? 'completed' : 'pending' %>">
+          <%= current_client.ses_domain_verified? ? "Verificado" : "Aguardando DNS" %>
+        </span>
+      </div>
+      <% unless current_client.ses_domain_verified? %>
+        <p class="body-small muted">Crie estes registros <strong>CNAME</strong> no DNS do domínio e clique em Verificar (pode levar algumas horas).</p>
+        <div class="table-wrap">
+          <table class="data-table dns-table">
+            <thead><tr><th>Nome</th><th>Valor</th></tr></thead>
+            <tbody>
+              <% current_client.dkim_records.each do |record| %>
+                <tr><td><code><%= record[:name] %></code></td><td><code><%= record[:value] %></code></td></tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+
+      <%= form_with model: current_client, url: email_domain_path, method: :patch, scope: :client, class: "stack stack--tight" do |cf| %>
+        <div class="field-row">
+          <%= m3_field cf, :email_from_name, "Nome do remetente", hint: "Padrão: nome da empresa." %>
+          <%= m3_field cf, :email_from_local, "Endereço", hint: "…@#{current_client.email_sending_domain}" %>
+        </div>
+        <%= m3_field cf, :email_reply_to, "Responder para (opcional)", as: :email_field, hint: "Onde caem as respostas dos clientes." %>
+        <div class="form-actions form-actions--start">
+          <%= cf.button type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "save" %> Salvar remetente<% end %>
+          <%= cf.button type: "submit", name: "check", value: "1", class: "btn btn--outlined btn--small" do %><%= icon "refresh" %> Verificar agora<% end %>
+          <%= link_to email_domain_path, class: "btn btn--text btn--small btn--danger",
+                      data: { turbo_method: :delete, turbo_confirm: "Remover o domínio? Os e-mails param até cadastrar de novo." } do %>
+            <%= icon "delete" %> Remover
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </section>
 </div>
 
-<% unless current_client.ses_domain_verified? %>
-  <div class="banner banner--warning">
-    <%= icon "warning" %>
-    <div>Os e-mails só são enviados depois que o domínio de envio da loja for verificado na SES — isso é feito no mewtda-painel, em <strong>Config. de E-mail</strong>.</div>
-  </div>
-<% end %>
-
-<%= form_errors c %>
+<h2 class="title-medium section-title">Mensagens por etapa</h2>
 
 <div data-controller="email-preview"
-     data-email-preview-images-value="<%= kinds.to_h { |k, *| [ k, (url_for(c.email_image(k)) if c.email_image(k).attached?) ] }.to_json %>"
+     data-email-preview-images-value="<%= ExchangeConfig::EMAIL_KINDS.to_h { |k| [ k, (url_for(c.email_image(k)) if c.email_image(k).attached?) ] }.to_json %>"
      data-email-preview-coupon-value="RECAB12CD34">
   <div class="tabs" role="tablist">
     <% kinds.each_with_index do |(kind, label, ic, _), i| %>
@@ -39,53 +102,65 @@
 
   <div class="grid grid--editor">
     <%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, class: "card" do |f| %>
-      <% kinds.each_with_index do |(kind, label, _, description), i| %>
+      <% kinds.each_with_index do |(kind, _label, _, description), i| %>
         <div class="tab-panel" data-email-preview-target="panel" data-kind="<%= kind %>" <%= "hidden" unless i.zero? %>>
           <p class="body-medium muted panel-intro"><%= description %></p>
-          <%= m3_field f, :"#{kind}_email_subject", "Assunto", data: { action: "input->email-preview#render", role: "subject" } %>
-          <%= m3_field f, :"#{kind}_email_body", "Mensagem", as: :text_area, rows: 9,
-                       data: { action: "input->email-preview#render", role: "body" },
-                       hint: "Variáveis: {{customer_name}}, {{order_number}}#{', {{coupon_code}}' if kind == 'approved'}" %>
+          <%= m3_field f, :"#{kind}_email_subject", "Assunto do e-mail", value: c.email_subject(kind),
+                       data: { action: "input->email-preview#render", role: "subject" } %>
+          <%= m3_field f, :"#{kind}_email_body", "E-mail", as: :text_area, rows: 8, value: c.email_body(kind),
+                       data: { action: "input->email-preview#render", role: "body" } %>
 
-          <div class="upload">
-            <div class="upload__body">
-              <div class="title-small">Imagem de destaque (opcional)</div>
-              <label class="btn btn--outlined btn--small">
-                <%= icon "add_photo_alternate" %> Escolher imagem
-                <%= f.file_field :"#{kind}_email_image", accept: "image/*", class: "visually-hidden",
-                                 data: { action: "change->email-preview#image", kind: kind } %>
-              </label>
-              <% if c.email_image(kind).attached? %>
-                <label class="checkbox-inline"><%= check_box_tag "exchange_config[remove_#{kind}_email_image]", "1" %> Remover imagem atual</label>
-              <% end %>
+          <% if ExchangeConfig::EMAIL_KINDS.include?(kind) %>
+            <div class="upload">
+              <div class="upload__body">
+                <div class="title-small">Imagem de destaque (opcional)</div>
+                <label class="btn btn--outlined btn--small">
+                  <%= icon "add_photo_alternate" %> Escolher imagem
+                  <%= f.file_field :"#{kind}_email_image", accept: "image/*", class: "visually-hidden",
+                                   data: { action: "change->email-preview#image", kind: kind } %>
+                </label>
+                <% if c.email_image(kind).attached? %>
+                  <label class="checkbox-inline"><%= check_box_tag "exchange_config[remove_#{kind}_email_image]", "1" %> Remover imagem atual</label>
+                <% end %>
+              </div>
             </div>
-          </div>
+          <% end %>
+
+          <%= m3_field f, :"#{kind}_whatsapp_body", "WhatsApp", as: :text_area, rows: 3, value: c.whatsapp_body(kind),
+                       data: { action: "input->email-preview#render", role: "whatsapp" } %>
         </div>
       <% end %>
+      <p class="body-small muted">Variáveis: <%= variables %></p>
 
       <%= hidden_field_tag :return_to, "email_templates" %>
       <div class="form-actions">
         <%= f.button type: "submit", class: "btn btn--filled", data: { turbo_submits_with: "Salvando…" } do %>
-          <%= icon "save" %> Salvar e-mails
+          <%= icon "save" %> Salvar mensagens
         <% end %>
       </div>
     <% end %>
 
-    <aside class="card email-preview">
-      <div class="email-preview__bar"><%= icon "visibility" %> Pré-visualização</div>
-      <div class="email-preview__meta">
-        <span class="body-small muted">De: naoresponda@<%= current_client.email_sending_domain.presence || "sualoja.com.br" %></span>
-        <strong class="title-small" data-email-preview-target="subject"></strong>
-      </div>
-      <div class="email-preview__canvas">
-        <div class="email-preview__mail" style="--mail-accent: <%= c.accent_color.presence || '#1b873f' %>">
-          <% if c.logo.attached? %><div class="email-preview__logo"><%= image_tag url_for(c.logo), alt: "" %></div><% end %>
-          <img class="email-preview__image" data-email-preview-target="image" alt="" hidden>
-          <h3 data-email-preview-target="heading"></h3>
-          <div class="email-preview__body" data-email-preview-target="body"></div>
-          <div class="email-preview__footer"><%= c.company_name.presence || current_client.name %></div>
+    <div class="stack">
+      <aside class="card email-preview">
+        <div class="email-preview__bar"><%= icon "visibility" %> Pré-visualização do e-mail</div>
+        <div class="email-preview__meta">
+          <span class="body-small muted">De: <%= current_client.email_sending_domain.present? ? current_client.email_from_address : "naoresponda@sualoja.com.br" %></span>
+          <strong class="title-small" data-email-preview-target="subject"></strong>
         </div>
-      </div>
-    </aside>
+        <div class="email-preview__canvas">
+          <div class="email-preview__mail" style="--mail-accent: <%= c.accent_color.presence || '#1b873f' %>">
+            <% if c.logo.attached? %><div class="email-preview__logo"><%= image_tag url_for(c.logo), alt: "" %></div><% end %>
+            <img class="email-preview__image" data-email-preview-target="image" alt="" hidden>
+            <h3 data-email-preview-target="heading"></h3>
+            <div class="email-preview__body" data-email-preview-target="body"></div>
+            <div class="email-preview__footer"><%= c.company_name.presence || current_client.name %></div>
+          </div>
+        </div>
+      </aside>
+      <aside class="card whatsapp-preview">
+        <div class="email-preview__bar"><%= icon "chat" %> WhatsApp</div>
+        <div class="whatsapp-preview__bubble" data-email-preview-target="whatsapp"></div>
+      </aside>
+    </div>
   </div>
 </div>

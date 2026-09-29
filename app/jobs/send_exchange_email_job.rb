@@ -1,5 +1,5 @@
-# E-mail ao cliente final em cada etapa (requested/approved/rejected/completed),
-# com assunto/corpo/imagem editáveis em Templates de e-mail.
+# E-mail ao cliente final em cada etapa, com assunto/corpo/imagem editáveis
+# em Configuração > E-mails.
 class SendExchangeEmailJob < ApplicationJob
   queue_as :default
 
@@ -12,24 +12,14 @@ class SendExchangeEmailJob < ApplicationJob
       return
     end
 
-    subject = interpolate(config.email_subject(kind), exchange_request)
+    variables = Exchange::MessageVariables.new(exchange_request)
+    subject = variables.interpolate(config.email_subject(kind))
     Ses::SendEmailService.new(exchange_request.client).call(
       to: exchange_request.customer_email,
       subject: subject,
-      html_body: ExchangeEmailRenderer.new(config, kind).call(
-        subject: subject, body: interpolate(config.email_body(kind), exchange_request)
-      )
+      html_body: ExchangeEmailRenderer.new(config, kind).call(subject: subject, body: variables.interpolate(config.email_body(kind)))
     )
   rescue StandardError => e
     Rails.logger.error "[SendExchangeEmailJob] Falha para exchange_request #{exchange_request_id}: #{e.message}"
-  end
-
-  private
-
-  def interpolate(text, exchange_request)
-    text.to_s
-        .gsub("{{customer_name}}", exchange_request.customer_name.to_s)
-        .gsub("{{order_number}}", exchange_request.shopify_order_number.to_s)
-        .gsub("{{coupon_code}}", exchange_request.coupon_code.to_s)
   end
 end

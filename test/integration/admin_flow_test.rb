@@ -76,22 +76,90 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     assert_select "tbody tr", 1
   end
 
-  test "salva configuração e templates" do
+  test "todas as abas da configuração e o guia abrem" do
     sign_in @user
 
-    get edit_exchange_config_path
-    assert_response :success
-    get email_templates_exchange_config_path
-    assert_response :success
+    [ edit_exchange_config_path, rules_exchange_config_path, reasons_exchange_config_path, resolutions_exchange_config_path,
+      shipping_exchange_config_path, email_templates_exchange_config_path, help_path ].each do |path|
+      get path
+      assert_response :success, path
+      assert_select ".app-footer"
+    end
+  end
 
-    patch exchange_config_path, params: { exchange_config: { company_name: "Nova", return_window_days: 10, accent_color: "#00aa00" } }
+  test "salva configuração, motivos, regras, contrato e templates" do
+    sign_in @user
+    config = @client.exchange_config
+
+    patch exchange_config_path, params: { exchange_config: { company_name: "Nova", accent_color: "#00aa00", support_email: "sac@loja.com" } }
     assert_redirected_to edit_exchange_config_path
-    assert_equal 10, @client.exchange_config.reload.return_window_days
+    assert_equal "sac@loja.com", config.reload.support_email
 
-    patch exchange_config_path, params: { return_to: "email_templates", exchange_config: { approved_email_subject: "Oba" } }
+    patch exchange_config_path, params: { return_to: "rules", exchange_config: {
+      return_window_days: 10, require_original_tag: "1",
+      exchange_rules_attributes: { "0" => { rule_type: "window", target: "collection", value: "Natal", days: 30,
+                                            starts_on: "2026-11-01", ends_on: "2026-12-24" } }
+    } }
+    assert_redirected_to rules_exchange_config_path
+    assert_equal 10, config.reload.return_window_days
+    assert_equal "Natal", config.exchange_rules.sole.value
+
+    reason = config.reason_for("cor")
+    patch exchange_config_path, params: { return_to: "reasons", exchange_config: {
+      exchange_reasons_attributes: { "0" => { id: reason.id, label: "Outra cor", resolutions: [ "", "store_credit" ] },
+                                     "1" => { label: "Presente repetido", category: "voluntary", resolutions: [ "store_credit" ] } }
+    } }
+    assert_redirected_to reasons_exchange_config_path
+    assert_equal "Outra cor", reason.reload.label
+    assert_equal %w[store_credit], reason.resolutions
+    assert config.reload.reason_for("presente_repetido")
+
+    patch exchange_config_path, params: { return_to: "shipping", exchange_config: {
+      return_modes: [ "", "agencia", "coleta" ],
+      carrier_contract_attributes: { carrier: "correios", active: "1", username: "loja", access_code: "segredo123",
+                                     posting_card: "0067", contract_number: "999", administrative_code: "123",
+                                     sender_name: "Loja", sender_zip: "01310-100", sender_street: "Av. Paulista",
+                                     sender_number: "1000", sender_district: "Bela Vista", sender_city: "São Paulo", sender_state: "SP" }
+    } }
+    assert_redirected_to shipping_exchange_config_path
+    contract = config.reload.carrier_contract
+    assert contract.correios_active?
+    assert_equal "segredo123", contract.access_code
+    assert_equal "01310100", contract.sender_zip
+    assert_equal %w[agencia coleta], config.return_modes
+
+    # código de acesso em branco mantém o salvo
+    patch exchange_config_path, params: { return_to: "shipping", exchange_config: { carrier_contract_attributes: { access_code: "" } } }
+    assert_equal "segredo123", contract.reload.access_code
+
+    patch exchange_config_path, params: { return_to: "email_templates", exchange_config: { approved_email_subject: "Oba", received_whatsapp_body: "Chegou!" } }
     assert_redirected_to email_templates_exchange_config_path
+    assert_equal "Chegou!", config.reload.received_whatsapp_body
 
     patch exchange_config_path, params: { exchange_config: { return_window_days: 0 } }
     assert_response :unprocessable_entity
+  end
+
+  test "aprova, informa postagem manual, recebe e registra reembolso" do
+    request = create_request(@client, items: [ { resolution: "refund", price: 90 } ],
+                                      refund_details: { "gateways" => [ "pix" ] })
+    sign_in @user
+
+    patch exchange_request_path(request), params: { status: "approved" }
+    assert request.reload.approved?
+
+    post return_label_exchange_request_path(request), params: { manual: "1", authorization_code: "AUT123", expires_at: "2026-10-30" }
+    assert_equal "AUT123", request.reload.return_authorization_code
+
+    patch exchange_request_path(request), params: { status: "received" }
+    assert request.reload.received?
+
+    refund = request.exchange_refunds.sole
+    patch exchange_request_exchange_refund_path(request, refund), params: { exchange_refund: { status: "done" } }
+    assert_equal "done", refund.reload.status
+
+    get exchange_request_path(request)
+    assert_response :success
+    assert_select ".event-list li", minimum: 3
   end
 end

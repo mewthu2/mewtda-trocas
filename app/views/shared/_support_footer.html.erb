@@ -1,0 +1,21 @@
+<%# Rodapé da área logada: suporte da Mewtda para os lojistas. %>
+<footer class="app-footer">
+  <div class="app-footer__lead">
+    <%= icon "support_agent" %>
+    <div>
+      <div class="title-small">Precisa de ajuda?</div>
+      <div class="body-small muted">Veja o <%= link_to "guia de uso", help_path, class: "strong-link" %> ou fale com o suporte Mewtda.</div>
+    </div>
+  </div>
+  <div class="app-footer__links">
+    <% if ENV["SUPPORT_WHATSAPP"].present? %>
+      <%= link_to "https://wa.me/#{ENV['SUPPORT_WHATSAPP'].gsub(/\D/, '')}", class: "btn btn--tonal btn--small", target: "_blank", rel: "noopener" do %>
+        <%= icon "chat" %> WhatsApp
+      <% end %>
+    <% end %>
+    <% if ENV["SUPPORT_EMAIL"].present? %>
+      <%= mail_to ENV["SUPPORT_EMAIL"], class: "btn btn--outlined btn--small" do %><%= icon "mail" %> <%= ENV["SUPPORT_EMAIL"] %><% end %>
+    <% end %>
+    <span class="body-small muted">Quero Trocar by Mewtda · <%= Date.current.year %></span>
+  </div>
+</footer>

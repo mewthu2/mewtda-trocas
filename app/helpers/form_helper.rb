@@ -27,6 +27,32 @@ module FormHelper
     end
   end
 
+  def m3_select(form, attribute, label, choices, hint: nil, **options)
+    errors = form.object&.errors&.[](attribute) || []
+    tag.div(class: [ "text-field text-field--select", ("has-error" if errors.any?) ].compact.join(" ")) do
+      safe_join([
+        form.select(attribute, choices, {}, options),
+        form.label(attribute, label),
+        (tag.span(errors.any? ? errors.to_sentence.upcase_first : hint, class: "text-field__supporting") if errors.any? || hint)
+      ].compact)
+    end
+  end
+
+  # Grupo de checkboxes para atributos array (ex.: return_modes, resolutions).
+  def m3_checkbox_group(form, attribute, choices, locked: [])
+    selected = Array(form.object.public_send(attribute))
+    tag.div(class: "check-group") do
+      safe_join([ form.hidden_field(attribute, multiple: true, value: "", id: nil) ] + choices.map do |value, text|
+        forced = locked.include?(value)
+        tag.label(class: [ "check-chip", ("is-locked" if forced) ].compact.join(" "), title: (forced ? "Obrigatório por lei" : nil)) do
+          check_box_tag("#{form.object_name}[#{attribute}][]", value, selected.include?(value) || forced,
+                        id: "#{form.object_name.to_s.parameterize(separator: "_")}_#{attribute}_#{value}") +
+            tag.span { safe_join([ text, (icon("lock", class: "msr--sm") if forced) ].compact, " ") }
+        end
+      end)
+    end
+  end
+
   def form_errors(record)
     return if record.errors.empty?
 

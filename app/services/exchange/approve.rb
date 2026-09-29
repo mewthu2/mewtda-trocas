@@ -1,30 +1,24 @@
 module Exchange
-  # Aprova a solicitação e, se houver itens de troca, gera um cupom na
-  # Shopify no valor desses itens.
+  # Aprova a solicitação: reserva estoque (se configurado para a aprovação),
+  # libera a postagem reversa e, se a loja resolve na aprovação, já executa
+  # crédito/reembolso/reposição.
   class Approve
-    def initialize(exchange_request)
+    def initialize(exchange_request, user: nil, auto: false)
       @exchange_request = exchange_request
+      @user = user
+      @auto = auto
     end
 
     def call
-      @exchange_request.update!(status: :approved, coupon_code: generate_coupon)
-      SendExchangeEmailJob.perform_later(exchange_request_id: @exchange_request.id, kind: "approved")
-      @exchange_request
-    end
+      request = @exchange_request
+      request.update!(status: :approved, approved_at: Time.current, auto_approved: @auto)
+      request.log!("approved", @auto ? "Aprovada automaticamente." : "Solicitação aprovada.", user: @user, public: true)
+      Exchange::Notify.call(request, "approved")
 
-    private
-
-    def generate_coupon
-      total = @exchange_request.troca_total
-      return nil if total <= 0
-
-      client = @exchange_request.client
-      Shopify::CreateDiscountCode.call(
-        client: client,
-        title: "Troca - Pedido #{@exchange_request.shopify_order_number}",
-        amount: total,
-        expires_in: client.exchange_config.coupon_validity_days.days
-      )
+      Exchange::ReserveStock.new(request).call_if("approval")
+      Exchange::IssueReturnLabel.new(request, user: @user).call if request.return_authorization_code.blank?
+      Exchange::Resolve.new(request, user: @user).call if request.config.resolve_on == "approval"
+      request
     end
   end
 end

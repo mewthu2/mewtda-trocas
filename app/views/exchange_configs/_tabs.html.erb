@@ -1,0 +1,28 @@
+<%
+  tabs = [
+    [ "edit", "Geral", "storefront", edit_exchange_config_path ],
+    [ "rules", "Prazos e elegibilidade", "event_available", rules_exchange_config_path ],
+    [ "reasons", "Motivos", "list_alt", reasons_exchange_config_path ],
+    [ "resolutions", "Resultados e financeiro", "payments", resolutions_exchange_config_path ],
+    [ "shipping", "Frete reverso", "local_shipping", shipping_exchange_config_path ],
+    [ "email_templates", "Comunicação", "forum", email_templates_exchange_config_path ]
+  ]
+  current = params[:return_to].presence || action_name
+%>
+<div class="page-header">
+  <div>
+    <h1 class="headline-small">Configuração</h1>
+    <p class="body-medium muted">Regras de trocas e devoluções de <%= current_client.name %></p>
+  </div>
+  <%= link_to help_path(anchor: "configuracao"), class: "btn btn--text" do %><%= icon "help" %> Como configurar<% end %>
+</div>
+
+<nav class="tabs" aria-label="Seções da configuração">
+  <% tabs.each do |key, label, ic, path| %>
+    <%= link_to path, class: [ "tabs__tab", ("is-active" if current == key) ].compact.join(" "), aria: { current: (current == key ? "page" : nil) } do %>
+      <%= icon ic %><span><%= label %></span>
+    <% end %>
+  <% end %>
+</nav>
+
+<%= form_errors @exchange_config %>

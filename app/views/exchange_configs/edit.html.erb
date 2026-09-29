@@ -1,14 +1,7 @@
 <% content_for :title, "Configuração" %>
 <% c = @exchange_config %>
 
-<div class="page-header">
-  <div>
-    <h1 class="headline-small">Configuração</h1>
-    <p class="body-medium muted">Página pública de trocas e devoluções de <%= current_client.name %></p>
-  </div>
-</div>
-
-<%= form_errors c %>
+<%= render "tabs" %>
 
 <%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, html: { autocomplete: "off" } do |f| %>
   <div class="grid grid--detail">
@@ -22,13 +15,13 @@
       </section>
 
       <section class="card">
-        <h2 class="title-medium card__title"><%= icon "rule" %> Regras</h2>
+        <h2 class="title-medium card__title"><%= icon "support_agent" %> Atendimento da loja</h2>
+        <p class="body-small muted">Aparece no rodapé da página pública para o cliente tirar dúvidas.</p>
         <div class="field-row">
-          <%= m3_field f, :return_window_days, "Prazo para devolução (dias)", as: :number_field, min: 1,
-                       hint: "Contado a partir do envio. Depois disso, só troca." %>
-          <%= m3_field f, :coupon_validity_days, "Validade do cupom (dias)", as: :number_field, min: 1,
-                       hint: "Cupom de uso único gerado na aprovação, no valor dos itens de troca." %>
+          <%= m3_field f, :support_email, "E-mail de atendimento", as: :email_field %>
+          <%= m3_field f, :support_whatsapp, "WhatsApp de atendimento", hint: "Com DDD. Ex.: (11) 91234-5678" %>
         </div>
+        <%= m3_field f, :support_hours, "Horário de atendimento", hint: "Ex.: Seg. a sex., 9h às 18h" %>
       </section>
     </div>
 
@@ -79,10 +72,5 @@
     </div>
   </div>
 
-  <%= hidden_field_tag :return_to, "edit" %>
-  <div class="sticky-actions">
-    <%= f.button type: "submit", class: "btn btn--filled", data: { turbo_submits_with: "Salvando…" } do %>
-      <%= icon "save" %> Salvar configuração
-    <% end %>
-  </div>
+  <%= render "save", section: "edit" %>
 <% end %>

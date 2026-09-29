@@ -1,0 +1,73 @@
+<% content_for :title, "Acompanhar solicitação" %>
+<% er = @exchange_request %>
+
+<div class="public-card public-card--wide">
+  <%= render "header" %>
+
+  <div class="order-heading">
+    <div>
+      <div class="overline">Protocolo <%= er.public_code %> · pedido <%= er.shopify_order_number %></div>
+      <h1 class="headline-small"><%= er.status_label %></h1>
+    </div>
+  </div>
+
+  <%= render "exchange_requests/timeline", exchange_request: er %>
+
+  <% if er.return_authorization_code.present? || er.return_tracking_code.present? %>
+    <section class="card card--primary">
+      <h2 class="title-small card__title"><%= icon "local_shipping" %> Envio do produto</h2>
+      <dl class="details">
+        <% if er.return_authorization_code.present? %><dt>Código de postagem</dt><dd><code><%= er.return_authorization_code %></code></dd><% end %>
+        <% if er.return_tracking_code.present? %><dt>Rastreio</dt><dd><code><%= er.return_tracking_code %></code></dd><% end %>
+        <% if er.return_expires_at %><dt>Válido até</dt><dd><%= l er.return_expires_at.to_date %></dd><% end %>
+        <dt>Como enviar</dt><dd><%= er.return_mode_label %></dd>
+      </dl>
+      <p class="body-small muted">Leve o produto embalado a uma agência dos Correios e informe o código de postagem — não precisa pagar.</p>
+    </section>
+  <% elsif er.approved? && er.return_mode == "loja" %>
+    <section class="card card--primary">
+      <h2 class="title-small card__title"><%= icon "storefront" %> Entregue em uma das lojas</h2>
+      <div class="body-small"><%= simple_format(@config.store_drop_off_addresses) %></div>
+    </section>
+  <% elsif er.approved? && @config.carrier_contract&.manual_instructions.present? %>
+    <section class="card card--primary">
+      <h2 class="title-small card__title"><%= icon "local_shipping" %> Como enviar</h2>
+      <div class="body-small"><%= simple_format(@config.carrier_contract.manual_instructions) %></div>
+    </section>
+  <% end %>
+
+  <% if er.invoice_url.present? && !er.completed? %>
+    <div class="banner banner--warning"><%= icon "payments" %>
+      <div>A nova peça tem diferença de preço. <%= link_to "Pague o complemento aqui", er.invoice_url, class: "strong-link", target: "_blank", rel: "noopener" %> para liberarmos o envio.</div>
+    </div>
+  <% end %>
+
+  <% if er.coupon_code.present? %>
+    <section class="card">
+      <h2 class="title-small card__title"><%= icon "redeem" %> Seu crédito</h2>
+      <div class="coupon"><code><%= er.coupon_code %></code></div>
+      <% if er.credit_amount %><p class="body-small muted">Valor: <%= brl er.credit_amount %></p><% end %>
+    </section>
+  <% end %>
+
+  <ul class="item-list">
+    <% er.exchange_request_items.each do |item| %>
+      <li class="item-row">
+        <div class="item-row__body">
+          <div class="title-small"><%= item.product_name %></div>
+          <div class="body-small muted"><%= [ item.variant_title.presence, "Qtd. #{item.quantity}", item.reason_label ].compact.join(" · ") %></div>
+          <div class="chip-row"><span class="assist-chip assist-chip--small"><%= item.resolution_label %><%= " → #{item.new_variant_title}" if item.new_variant_title.present? %></span></div>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+
+  <% events = er.exchange_events.select(&:public) %>
+  <% if events.any? %>
+    <ol class="event-list">
+      <% events.reverse_each do |event| %>
+        <li><span class="body-small muted"><%= date_br event.created_at %></span><span class="body-medium"><%= event.message %></span></li>
+      <% end %>
+    </ol>
+  <% end %>
+</div>

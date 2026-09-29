@@ -1,10 +1,17 @@
 <%
-  steps = if exchange_request.rejected?
-    [ [ "Recebida", "inbox", :done ], [ "Rejeitada", "block", :error ] ]
+  er = exchange_request
+  steps = if er.rejected?
+    [ [ "Recebida", "inbox", :done ], [ "Não aprovada", "block", :error ] ]
   else
-    reached = { "pending" => 1, "approved" => 2, "completed" => 3 }.fetch(exchange_request.status)
-    [ [ "Recebida", "inbox" ], [ "Aprovada", "thumb_up" ], [ "Concluída", "task_alt" ] ].each_with_index.map do |(label, ic), i|
-      [ label, ic, i < reached ? :done : (i == reached ? :current : :todo) ]
+    reached = { "pending" => 1, "approved" => 2, "received" => 4, "completed" => 5 }.fetch(er.status)
+    [ [ "Solicitada", "inbox" ], [ "Aprovada", "thumb_up" ], [ "Produto enviado", "local_shipping" ],
+      [ "Recebido", "inventory" ], [ "Concluída", "task_alt" ] ].each_with_index.map do |(label, ic), i|
+      state = if i < reached then :done
+      elsif i == reached then :current
+      else :todo
+      end
+      state = :done if i == 2 && reached >= 2 && (er.return_authorization_code.present? || er.return_tracking_code.present? || reached > 2)
+      [ label, ic, state ]
     end
   end
 %>

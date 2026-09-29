@@ -3,12 +3,12 @@ Rails.application.routes.draw do
 
   devise_for :users, path: "", path_names: { sign_in: "entrar", sign_out: "sair" }
 
-  # Página pública do cliente final (sem login). O token é o slug de
-  # ExchangeConfig — o mesmo usado no painel, então basta trocar o domínio.
+  # Página pública do cliente final (sem login). O token é o slug de ExchangeConfig.
   scope "troca/:token", as: :public_exchange, controller: "public/exchanges" do
     get "/", action: :new
     post "buscar", action: :lookup, as: :lookup
     post "/", action: :create
+    get "acompanhar/:code", action: :tracking, as: :tracking
   end
   get "crm/troca/:token", to: redirect("/troca/%{token}")
 
@@ -17,9 +17,23 @@ Rails.application.routes.draw do
   end
   root to: redirect("/entrar")
 
-  resources :exchange_requests, path: "solicitacoes", only: %i[index show update]
-  resource :exchange_config, path: "configuracao", only: %i[edit update] do
-    get :email_templates, path: "emails"
+  resources :exchange_requests, path: "solicitacoes", only: %i[index show update] do
+    member do
+      post :return_label, path: "postagem"
+    end
+    resources :exchange_refunds, path: "reembolsos", only: %i[create update]
   end
+
+  resource :exchange_config, path: "configuracao", only: %i[edit update] do
+    get :rules, path: "regras"
+    get :reasons, path: "motivos"
+    get :resolutions, path: "resultados"
+    get :shipping, path: "frete"
+    get :email_templates, path: "comunicacao"
+    post :test_correios, path: "frete/testar"
+  end
+  resource :email_domain, path: "configuracao/dominio-de-envio", only: %i[create update destroy]
+
   resource :current_client, path: "cliente", only: :update
+  get "como-usar", to: "help#show", as: :help
 end

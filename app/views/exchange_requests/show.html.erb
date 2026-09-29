@@ -1,28 +1,47 @@
 <% content_for :title, "Pedido #{@exchange_request.shopify_order_number}" %>
 <% er = @exchange_request %>
+<% config = er.config %>
 
 <div class="page-header">
   <div class="page-header__lead">
     <%= link_to exchange_requests_path, class: "icon-button", aria: { label: "Voltar" } do %><%= icon "arrow_back" %><% end %>
     <div>
       <h1 class="headline-small">Pedido <%= er.shopify_order_number %> <%= status_chip er %></h1>
-      <p class="body-medium muted">Recebida em <%= date_br er.created_at %></p>
+      <p class="body-medium muted">Protocolo <strong><%= er.public_code %></strong> · recebida em <%= date_br er.created_at %><%= " · aprovada automaticamente" if er.auto_approved? %></p>
     </div>
   </div>
 
   <div class="page-header__actions">
     <% if er.pending? %>
-      <%= button_to exchange_request_path(er), method: :patch, params: { status: "rejected" }, class: "btn btn--outlined btn--danger",
-                    form: { data: { turbo_confirm: "Rejeitar esta solicitação? O cliente será avisado por e-mail." } } do %>
-        <%= icon "block" %> Rejeitar
-      <% end %>
+      <details class="menu reject-menu" data-controller="dismissable">
+        <summary class="btn btn--outlined btn--danger"><%= icon "block" %> Rejeitar</summary>
+        <div class="menu__surface menu__surface--form">
+          <%= form_with url: exchange_request_path(er), method: :patch, class: "stack stack--tight" do %>
+            <%= hidden_field_tag :status, "rejected" %>
+            <div class="text-field text-field--textarea">
+              <%= text_area_tag :rejection_reason, nil, rows: 3, placeholder: " ", id: "rejection_reason" %>
+              <label for="rejection_reason">Motivo (enviado ao cliente)</label>
+            </div>
+            <%= button_tag type: "submit", class: "btn btn--filled btn--danger btn--small" do %>Confirmar rejeição<% end %>
+          <% end %>
+        </div>
+      </details>
       <%= button_to exchange_request_path(er), method: :patch, params: { status: "approved" }, class: "btn btn--filled",
-                    form: { data: { turbo_confirm: er.troca_total.positive? ? "Aprovar e gerar cupom de #{brl er.troca_total} na Shopify?" : "Aprovar esta solicitação?" } } do %>
+                    form: { data: { turbo_confirm: "Aprovar? #{config&.resolve_on == 'approval' ? 'Crédito, reembolso e nova peça serão gerados agora.' : 'O resultado será gerado após a conferência do produto.'}" } } do %>
         <%= icon "check" %> Aprovar
       <% end %>
     <% elsif er.approved? %>
+      <%= button_to exchange_request_path(er), method: :patch, params: { status: "received" }, class: "btn btn--filled",
+                    form: { data: { turbo_confirm: "Confirmar que o produto chegou e foi conferido?" } } do %>
+        <%= icon "inventory" %> Produto recebido
+      <% end %>
+      <%= button_to exchange_request_path(er), method: :patch, params: { status: "completed" }, class: "btn btn--outlined",
+                    form: { data: { turbo_confirm: "Concluir sem registrar o recebimento do produto?" } } do %>
+        <%= icon "task_alt" %> Concluir
+      <% end %>
+    <% elsif er.received? %>
       <%= button_to exchange_request_path(er), method: :patch, params: { status: "completed" }, class: "btn btn--filled",
-                    form: { data: { turbo_confirm: "Marcar como concluída? O cliente será avisado por e-mail." } } do %>
+                    form: { data: { turbo_confirm: "Marcar como concluída? O cliente será avisado." } } do %>
         <%= icon "task_alt" %> Marcar como concluída
       <% end %>
     <% end %>
@@ -31,40 +50,130 @@
 
 <%= render "timeline", exchange_request: er %>
 
+<% if er.pending? && er.review_reasons.any? %>
+  <div class="banner <%= er.flagged_for_review? ? 'banner--warning' : 'banner--info' %>">
+    <%= icon(er.flagged_for_review? ? "flag" : "visibility") %>
+    <div><strong>Precisa de análise:</strong> <%= er.review_reasons.map { |r| ExchangeRequest::REVIEW_REASON_LABELS[r] }.compact.to_sentence %>.</div>
+  </div>
+<% end %>
+
+<% if er.rejected? && er.rejection_reason.present? %>
+  <div class="banner banner--error"><%= icon "block" %><div><strong>Motivo da rejeição:</strong> <%= er.rejection_reason %></div></div>
+<% end %>
+
 <div class="grid grid--detail">
-  <section class="card">
-    <h2 class="title-medium card__title"><%= icon "shopping_bag" %> Itens</h2>
-    <ul class="item-list">
-      <% er.exchange_request_items.each do |item| %>
-        <li class="item-row">
-          <% if item.photo.attached? %>
-            <%= link_to url_for(item.photo), target: "_blank", rel: "noopener", class: "item-row__thumb" do %>
-              <%= image_tag url_for(item.photo), alt: "Foto enviada pelo cliente", loading: "lazy" %>
+  <div class="stack">
+    <section class="card">
+      <h2 class="title-medium card__title"><%= icon "shopping_bag" %> Itens</h2>
+      <ul class="item-list">
+        <% er.exchange_request_items.each do |item| %>
+          <li class="item-row">
+            <% if item.photo.attached? %>
+              <%= link_to url_for(item.photo), target: "_blank", rel: "noopener", class: "item-row__thumb" do %>
+                <%= image_tag url_for(item.photo), alt: "Foto enviada pelo cliente", loading: "lazy" %>
+              <% end %>
+            <% else %>
+              <span class="item-row__thumb item-row__thumb--empty"><%= icon "checkroom" %></span>
             <% end %>
-          <% else %>
-            <span class="item-row__thumb item-row__thumb--empty"><%= icon "checkroom" %></span>
+            <div class="item-row__body">
+              <div class="title-small"><%= item.product_name %></div>
+              <div class="body-small muted">
+                <%= [ item.variant_title.presence, ("SKU #{item.sku}" if item.sku.present?), "Qtd. #{item.quantity}" ].compact.join(" · ") %>
+              </div>
+              <div class="chip-row">
+                <span class="kind-chip kind-chip--<%= item.kind %>"><%= icon(item.troca? ? "swap_horiz" : "undo") %><%= item.resolution_label %></span>
+                <span class="assist-chip assist-chip--small"><%= item.reason_label %></span>
+                <% if item.new_variant_title.present? %>
+                  <span class="assist-chip assist-chip--small"><%= icon "arrow_forward", class: "msr--sm" %> <%= item.new_variant_title %> (<%= brl item.new_variant_price %>)</span>
+                <% end %>
+                <% if item.conditions_confirmed? && config&.conditions&.any? %>
+                  <span class="assist-chip assist-chip--small"><%= icon "verified", class: "msr--sm" %> Condições confirmadas</span>
+                <% end %>
+              </div>
+              <% if item.answers.present? %>
+                <dl class="answers">
+                  <% item.answers.each do |question, answer| %><dt><%= question %></dt><dd><%= answer %></dd><% end %>
+                </dl>
+              <% end %>
+            </div>
+            <div class="item-row__price title-small"><%= brl item.subtotal %></div>
+          </li>
+        <% end %>
+      </ul>
+      <div class="totals">
+        <% if er.credit_items_total.positive? %><div><span class="muted">Vira crédito</span><strong><%= brl er.credit_items_total %></strong></div><% end %>
+        <% if er.refund_total.positive? %><div><span class="muted">Reembolso</span><strong><%= brl er.refund_total %></strong></div><% end %>
+        <% if er.price_difference.to_f.nonzero? %>
+          <div><span class="muted">Diferença de preço (nova peça − original)</span><strong><%= brl er.price_difference %></strong></div>
+        <% end %>
+        <% if er.customer_pays_shipping? && er.shipping_cost.present? %>
+          <div><span class="muted">Frete reverso pago pelo cliente</span><strong>− <%= brl er.shipping_cost %></strong></div>
+        <% end %>
+        <div><span class="muted">Total da solicitação</span><strong><%= brl er.total %></strong></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="title-medium card__title"><%= icon "local_shipping" %> Envio de volta</h2>
+      <dl class="details">
+        <dt>Forma</dt><dd><%= er.return_mode_label || "—" %></dd>
+        <dt>Frete</dt>
+        <dd>
+          <%= er.shipping_payer == "customer" ? "Cliente" : "Loja" %>
+          <%= " · #{brl er.shipping_cost}" if er.shipping_cost.present? %>
+          <%= " · #{CarrierContract::SERVICES[er.return_service]}" if er.return_service.present? %>
+        </dd>
+        <dt>CEP de origem</dt><dd><%= er.customer_zip.presence || "—" %></dd>
+        <% if er.return_authorization_code.present? %><dt>Código de postagem</dt><dd><code><%= er.return_authorization_code %></code></dd><% end %>
+        <% if er.return_tracking_code.present? %>
+          <dt>Rastreio</dt>
+          <dd><%= link_to er.return_tracking_code, "https://rastreamento.correios.com.br/app/index.php?objeto=#{er.return_tracking_code}", target: "_blank", rel: "noopener" %></dd>
+        <% end %>
+        <% if er.return_expires_at %><dt>Válido até</dt><dd><%= l er.return_expires_at.to_date %></dd><% end %>
+      </dl>
+
+      <% if (er.approved? || er.received?) && er.return_mode != "loja" %>
+        <div class="form-actions form-actions--start">
+          <% if config&.correios_contract %>
+            <%= button_to return_label_exchange_request_path(er), method: :post, class: "btn btn--tonal btn--small" do %>
+              <%= icon "qr_code_2" %> <%= er.return_authorization_code.present? ? "Gerar novo código" : "Gerar código nos Correios" %>
+            <% end %>
           <% end %>
-          <div class="item-row__body">
-            <div class="title-small"><%= item.product_name %></div>
-            <div class="body-small muted">
-              <%= [ item.variant_title.presence, ("SKU #{item.sku}" if item.sku.present?), "Qtd. #{item.quantity}" ].compact.join(" · ") %>
+        </div>
+        <details class="disclosure">
+          <summary class="body-small">Informar códigos manualmente</summary>
+          <%= form_with url: return_label_exchange_request_path(er), method: :post, class: "stack stack--tight" do %>
+            <%= hidden_field_tag :manual, "1" %>
+            <div class="field-row">
+              <div class="text-field"><%= text_field_tag :authorization_code, er.return_authorization_code, placeholder: " ", id: "authorization_code" %><label for="authorization_code">Código de postagem</label></div>
+              <div class="text-field"><%= text_field_tag :tracking_code, er.return_tracking_code, placeholder: " ", id: "tracking_code" %><label for="tracking_code">Código de rastreio</label></div>
+              <div class="text-field"><%= date_field_tag :expires_at, er.return_expires_at&.to_date, placeholder: " ", id: "expires_at" %><label for="expires_at">Válido até</label></div>
             </div>
-            <div class="chip-row">
-              <span class="kind-chip kind-chip--<%= item.kind %>"><%= icon(item.troca? ? "swap_horiz" : "undo") %><%= item.kind_label %></span>
-              <span class="assist-chip assist-chip--small"><%= item.reason_label %></span>
-            </div>
-          </div>
-          <div class="item-row__price title-small"><%= brl item.subtotal %></div>
-        </li>
+            <div><%= button_tag type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "send" %> Salvar e avisar cliente<% end %></div>
+          <% end %>
+        </details>
       <% end %>
-    </ul>
-    <div class="totals">
-      <% if er.troca_total.positive? %>
-        <div><span class="muted">Valor em trocas (vira cupom)</span><strong><%= brl er.troca_total %></strong></div>
+    </section>
+
+    <section class="card">
+      <h2 class="title-medium card__title"><%= icon "history" %> Histórico</h2>
+      <% if er.exchange_events.any? %>
+        <ol class="event-list">
+          <% er.exchange_events.reverse_each do |event| %>
+            <li class="<%= 'is-error' if event.kind == 'error' %>">
+              <span class="body-small muted">
+                <%= date_br event.created_at %><%= " · #{event.user.display_name}" if event.user %>
+                <%= icon("public", class: "msr--sm", title: "Visível para o cliente") if event.public %>
+              </span>
+              <span class="body-medium"><%= event.message %></span>
+            </li>
+          <% end %>
+        </ol>
+      <% else %>
+        <p class="body-small muted">Sem eventos ainda.</p>
       <% end %>
-      <div><span class="muted">Total da solicitação</span><strong><%= brl er.total %></strong></div>
-    </div>
-  </section>
+    </section>
+  </div>
 
   <div class="stack">
     <section class="card">
@@ -72,6 +181,7 @@
       <dl class="details">
         <dt>Nome</dt><dd><%= er.customer_name.presence || "—" %></dd>
         <dt>E-mail</dt><dd><%= mail_to er.customer_email %></dd>
+        <dt>Celular</dt><dd><%= er.customer_phone.presence || "—" %></dd>
         <dt>Pedido Shopify</dt>
         <dd>
           <% if current_client.shopify_shop_url.present? %>
@@ -82,24 +192,72 @@
             <%= er.shopify_order_number %>
           <% end %>
         </dd>
+        <% if er.delivered_at %><dt>Entregue em</dt><dd><%= l er.delivered_at.to_date %></dd><% end %>
+        <% if config&.tracking_page_enabled? %>
+          <dt>Acompanhamento</dt><dd><%= link_to "Abrir página do cliente", public_exchange_tracking_path(config.slug, er.public_code), target: "_blank", rel: "noopener" %></dd>
+        <% end %>
       </dl>
     </section>
 
     <% if er.coupon_code.present? %>
       <section class="card card--primary">
-        <h2 class="title-medium card__title"><%= icon "confirmation_number" %> Cupom gerado</h2>
+        <h2 class="title-medium card__title"><%= icon "redeem" %> Crédito gerado</h2>
         <div class="coupon" data-controller="clipboard" data-clipboard-text-value="<%= er.coupon_code %>">
           <code><%= er.coupon_code %></code>
-          <button type="button" class="icon-button" data-action="clipboard#copy" aria-label="Copiar cupom"><%= icon "content_copy" %></button>
+          <button type="button" class="icon-button" data-action="clipboard#copy" aria-label="Copiar"><%= icon "content_copy" %></button>
         </div>
-        <p class="body-small muted">Uso único, no valor de <%= brl er.troca_total %>.</p>
-      </section>
-    <% elsif er.approved? && er.troca_total.positive? %>
-      <section class="card card--warning">
-        <h2 class="title-medium card__title"><%= icon "warning" %> Cupom não gerado</h2>
-        <p class="body-small">A Shopify não criou o cupom. Verifique o token da loja (precisa da permissão <code>write_discounts</code>) e crie o cupom manualmente se preciso.</p>
+        <p class="body-small muted"><%= ExchangeConfig::CREDIT_TYPES[er.credit_kind] %><%= " · #{brl er.credit_amount}" if er.credit_amount %></p>
       </section>
     <% end %>
+
+    <% if er.replacement_items.any? %>
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "swap_horiz" %> Nova peça</h2>
+        <dl class="details">
+          <% if er.stock_reserved_until %><dt>Estoque reservado até</dt><dd><%= date_br er.stock_reserved_until %></dd><% end %>
+          <% if er.replacement_order_name.present? %><dt>Pedido de reposição</dt><dd><%= er.replacement_order_name %></dd><% end %>
+          <% if er.invoice_url.present? %><dt>Complemento</dt><dd><%= link_to "Fatura enviada ao cliente", er.invoice_url, target: "_blank", rel: "noopener" %></dd><% end %>
+          <% if er.replacement_draft_order_id.blank? %><dt>Status</dt><dd class="muted">Será criada na etapa configurada.</dd><% end %>
+        </dl>
+      </section>
+    <% end %>
+
+    <section class="card">
+      <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Reembolsos</h2>
+      <% if er.exchange_refunds.any? %>
+        <ul class="refund-list">
+          <% er.exchange_refunds.each do |refund| %>
+            <li>
+              <div>
+                <strong><%= brl refund.amount %></strong> · <%= refund.method_label %>
+                <% if refund.notes.present? %><div class="body-small muted"><%= refund.notes %></div><% end %>
+              </div>
+              <%= form_with model: refund, url: exchange_request_exchange_refund_path(er, refund), method: :patch, class: "refund-status",
+                            data: { controller: "auto-submit" } do |rf| %>
+                <%= rf.select :status, ExchangeRefund::STATUSES.invert.to_a, {}, data: { action: "change->auto-submit#submit" }, aria: { label: "Status do reembolso" } %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="body-small muted">Nenhum reembolso registrado.</p>
+      <% end %>
+      <% if er.refund_details["pix_key"].present? %>
+        <p class="body-small">Chave Pix do cliente: <code><%= er.refund_details["pix_key"] %></code></p>
+      <% end %>
+      <details class="disclosure">
+        <summary class="body-small">Registrar reembolso manual</summary>
+        <%= form_with model: ExchangeRefund.new(method: "pix", status: "done"), url: exchange_request_exchange_refunds_path(er), class: "stack stack--tight" do |rf| %>
+          <div class="field-row">
+            <%= m3_field rf, :amount, "Valor (R$)", as: :number_field, step: "0.01", min: 0.01, required: true %>
+            <%= m3_select rf, :method, "Forma", ExchangeRefund::METHODS.invert.to_a %>
+            <%= m3_select rf, :status, "Status", ExchangeRefund::STATUSES.invert.to_a %>
+          </div>
+          <%= m3_field rf, :notes, "Observação (ex.: ID da transação Pix)" %>
+          <div><%= button_tag type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "add" %> Registrar<% end %></div>
+        <% end %>
+      </details>
+    </section>
 
     <section class="card">
       <h2 class="title-medium card__title"><%= icon "sticky_note_2" %> Nota interna</h2>

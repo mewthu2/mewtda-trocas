@@ -1,0 +1,40 @@
+<% reason = f.object %>
+<% locked = ExchangeReason::REQUIRED_RESOLUTIONS.fetch(reason.category, []) %>
+<section class="card reason-card" data-nested-row data-new-record="<%= reason.new_record? %>">
+  <%= f.hidden_field :_destroy %>
+  <%= f.hidden_field :position %>
+  <div class="reason-card__head">
+    <div class="field-row reason-card__title">
+      <%= m3_field f, :label, "Nome do motivo (como o cliente vê)" %>
+      <%= m3_select f, :category, "Tipo", ExchangeReason::CATEGORIES.invert.to_a %>
+    </div>
+    <div class="reason-card__actions">
+      <%= m3_switch f, :active, "Ativo" %>
+      <button type="button" class="icon-button" data-action="nested-form#remove" aria-label="Remover motivo"><%= icon "delete" %></button>
+    </div>
+  </div>
+
+  <div>
+    <div class="title-small">Resultados que o cliente pode escolher</div>
+    <%= m3_checkbox_group f, :resolutions, ExchangeReason::RESOLUTIONS, locked: locked %>
+    <p class="body-small muted">Só aparecem as opções possíveis no caso — ex.: “outro tamanho/cor” só se houver variante disponível.</p>
+  </div>
+
+  <div class="field-row">
+    <% if reason.legal? %>
+      <div class="text-field is-readonly">
+        <input type="text" value="Loja (garantido por lei)" placeholder=" " readonly id="payer_<%= f.index %>">
+        <label for="payer_<%= f.index %>">Quem paga o frete de volta</label>
+      </div>
+    <% else %>
+      <%= m3_select f, :shipping_payer, "Quem paga o frete de volta", ExchangeReason::SHIPPING_PAYERS.invert.to_a,
+                    hint: "Exceções (1ª troca grátis, valor mínimo) ficam em Frete reverso." %>
+    <% end %>
+    <%= m3_field f, :questions, "Perguntas ao cliente (uma por linha)", as: :text_area, rows: 2 %>
+  </div>
+
+  <div class="chip-row">
+    <%= m3_switch f, :requires_photo, "Exigir foto", reason.category == "defect" ? "Obrigatório para defeito." : nil %>
+    <%= m3_switch f, :manual_review, "Análise humana", reason.category.in?(%w[defect logistics]) ? "Obrigatório para este tipo." : "Sem isso, pode ser aprovado automaticamente." %>
+  </div>
+</section>

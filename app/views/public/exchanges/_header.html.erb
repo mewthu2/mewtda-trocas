@@ -2,7 +2,7 @@
   <% if @config.logo.attached? %>
     <%= image_tag url_for(@config.logo), alt: @config.company_name, class: "public-header__logo" %>
   <% else %>
-    <span class="public-header__mark"><%= icon "sync_alt" %></span>
+    <%= image_tag "quero-trocar-mark.svg", alt: "", class: "public-header__mark-img" %>
   <% end %>
   <div class="overline"><%= @config.company_name %></div>
 </div>

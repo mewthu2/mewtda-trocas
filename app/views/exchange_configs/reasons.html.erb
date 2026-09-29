@@ -1,0 +1,31 @@
+<% content_for :title, "Motivos" %>
+<% c = @exchange_config %>
+
+<%= render "tabs" %>
+
+<div class="banner banner--info">
+  <%= icon "info" %>
+  <div>
+    Cada motivo define o que o cliente pode escolher como resultado, se precisa de foto, se passa por análise humana,
+    quem paga o frete de volta e perguntas extras. Motivos de <strong>arrependimento</strong>, <strong>defeito</strong> e
+    <strong>erro no pedido</strong> têm mínimos legais travados (<%= icon "lock", class: "msr--sm" %>).
+  </div>
+</div>
+
+<%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, html: { autocomplete: "off" } do |f| %>
+  <div data-controller="nested-form" class="stack">
+    <div class="stack" data-nested-form-target="list">
+      <%= f.fields_for :exchange_reasons do |rf| %>
+        <%= render "reason_fields", f: rf %>
+      <% end %>
+    </div>
+    <template data-nested-form-target="template">
+      <%= f.fields_for :exchange_reasons, ExchangeReason.new(category: "voluntary", resolutions: %w[store_credit], position: 99), child_index: "NEW_RECORD" do |rf| %>
+        <%= render "reason_fields", f: rf %>
+      <% end %>
+    </template>
+    <div><button type="button" class="btn btn--tonal" data-action="nested-form#add"><%= icon "add" %> Adicionar motivo</button></div>
+  </div>
+
+  <%= render "save", section: "reasons" %>
+<% end %>

@@ -1,0 +1,198 @@
+<% content_for :title, "Como usar" %>
+<%
+  sections = [
+    [ "primeiros-passos", "Primeiros passos" ],
+    [ "fluxo", "Como funciona uma solicitação" ],
+    [ "solicitacoes", "Tratando as solicitações" ],
+    [ "configuracao", "Configuração, aba por aba" ],
+    [ "correios", "Contrato dos Correios" ],
+    [ "emails", "E-mails e WhatsApp" ],
+    [ "reembolsos", "Reembolsos e créditos" ],
+    [ "lei", "O que a lei exige" ],
+    [ "shopify", "Permissões da Shopify" ],
+    [ "duvidas", "Dúvidas frequentes" ]
+  ]
+%>
+
+<div class="page-header">
+  <div>
+    <h1 class="headline-small">Como usar o Quero Trocar</h1>
+    <p class="body-medium muted">Tudo o que você precisa para configurar a loja e atender trocas e devoluções</p>
+  </div>
+</div>
+
+<div class="help-layout">
+  <nav class="help-toc card" aria-label="Neste guia">
+    <div class="overline">Neste guia</div>
+    <% sections.each do |id, label| %>
+      <a href="#<%= id %>"><%= label %></a>
+    <% end %>
+  </nav>
+
+  <article class="help-content">
+    <section id="primeiros-passos" class="card">
+      <h2 class="title-medium card__title"><%= icon "rocket_launch" %> Primeiros passos</h2>
+      <ol class="help-steps">
+        <li>
+          <strong>Escolha a loja</strong> no seletor do topo (administradores veem todas as lojas).
+        </li>
+        <li>
+          <strong>Geral:</strong> em <%= link_to "Configuração › Geral", edit_exchange_config_path, class: "strong-link" %>, preencha o nome da empresa,
+          a cor, o logo e o contato de atendimento, e ligue <em>Página ativa</em>.
+        </li>
+        <li>
+          <strong>Prazos e motivos:</strong> revise os prazos em <%= link_to "Prazos e elegibilidade", rules_exchange_config_path, class: "strong-link" %>
+          e os motivos em <%= link_to "Motivos", reasons_exchange_config_path, class: "strong-link" %>. A loja já começa com 8 motivos prontos.
+        </li>
+        <li>
+          <strong>Frete reverso:</strong> em <%= link_to "Frete reverso", shipping_exchange_config_path, class: "strong-link" %>, escolha como o cliente envia o produto de volta e cadastre o contrato dos Correios.
+        </li>
+        <li>
+          <strong>Domínio de e-mail:</strong> em <%= link_to "Comunicação", email_templates_exchange_config_path, class: "strong-link" %>, cadastre o domínio da loja e crie os 3 registros DNS.
+          Sem isso os e-mails não saem.
+        </li>
+        <li>
+          <strong>Divulgue o link:</strong> copie o link público em <em>Geral</em> e coloque no site (rodapé, página de trocas e e-mails pós-venda).
+        </li>
+      </ol>
+    </section>
+
+    <section id="fluxo" class="card">
+      <h2 class="title-medium card__title"><%= icon "route" %> Como funciona uma solicitação</h2>
+      <ol class="stepper stepper--help">
+        <% [ [ "Cliente pede", "inbox" ], [ "Aprovação", "thumb_up" ], [ "Envio de volta", "local_shipping" ], [ "Conferência", "inventory" ], [ "Concluída", "task_alt" ] ].each do |label, ic| %>
+          <li class="stepper__step stepper__step--done"><span class="stepper__dot"><%= icon ic %></span><span class="stepper__label"><%= label %></span></li>
+        <% end %>
+      </ol>
+      <ol class="help-list">
+        <li><strong>Cliente pede:</strong> na página pública, ele informa o número do pedido e o e-mail da compra. O sistema busca o pedido na Shopify e mostra, item a item, só os motivos e resultados permitidos pelas suas regras e pelo prazo de cada um.</li>
+        <li><strong>Aprovação:</strong> casos simples podem ser aprovados sozinhos (se você ligar a aprovação automática). Defeito, avaria, item errado, fotos, valores altos e clientes com muitas solicitações vão para análise humana.</li>
+        <li><strong>Envio de volta:</strong> ao aprovar, o sistema gera o código de postagem nos Correios (com contrato ativo) e envia ao cliente. Sem contrato, você informa o código manualmente ou usa as instruções configuradas.</li>
+        <li><strong>Conferência:</strong> quando o produto chega, clique em <em>Produto recebido</em>.</li>
+        <li><strong>Resultado:</strong> crédito, reembolso ou pedido da nova peça são gerados na Shopify na aprovação ou só depois da conferência — você escolhe em <em>Resultados e financeiro</em>.</li>
+      </ol>
+      <p class="body-small muted">O cliente acompanha tudo pelo link de acompanhamento que vai em todos os e-mails (protocolo de 8 letras).</p>
+    </section>
+
+    <section id="solicitacoes" class="card">
+      <h2 class="title-medium card__title"><%= icon "inbox" %> Tratando as solicitações</h2>
+      <ul class="help-list">
+        <li><strong>Lista:</strong> filtre por status, busque por pedido, protocolo, nome ou e-mail. O ícone <%= icon "flag", class: "msr--sm" %> marca solicitações com valor alto ou suspeita de abuso.</li>
+        <li><strong>Aprovar:</strong> gera a postagem reversa e, se configurado, o crédito/reembolso/nova peça.</li>
+        <li><strong>Rejeitar:</strong> escreva o motivo — ele vai no e-mail/WhatsApp para o cliente (variável <code>{{rejection_reason}}</code>).</li>
+        <li><strong>Envio de volta:</strong> gere um novo código nos Correios ou informe códigos manualmente. O cliente é avisado na hora.</li>
+        <li><strong>Produto recebido:</strong> registra a conferência. Se a loja resolve só depois de conferir, o resultado é gerado e a solicitação é concluída automaticamente.</li>
+        <li><strong>Reembolsos:</strong> acompanhe e altere o status (pendente, em processamento, concluído, falhou). Pix e boleto são pagos pela equipe e registrados aqui.</li>
+        <li><strong>Histórico:</strong> tudo o que aconteceu fica registrado. Eventos com <%= icon "public", class: "msr--sm" %> aparecem para o cliente.</li>
+      </ul>
+    </section>
+
+    <section id="configuracao" class="card">
+      <h2 class="title-medium card__title"><%= icon "tune" %> Configuração, aba por aba</h2>
+
+      <h3 class="title-small">Geral</h3>
+      <p class="body-medium">Liga/desliga a página pública, define nome, instruções, cor, logo e contato de atendimento (aparece no rodapé da página do cliente).</p>
+
+      <h3 class="title-small">Prazos e elegibilidade</h3>
+      <ul class="help-list">
+        <li><strong>Contagem do prazo:</strong> a partir da entrega (recomendado) ou do envio.</li>
+        <li><strong>Troca voluntária:</strong> seu prazo para tamanho, cor e “não gostei”.</li>
+        <li><strong>Arrependimento:</strong> 7 dias, fixo por lei.</li>
+        <li><strong>Defeito e erro no pedido:</strong> mínimo de 30 dias (produtos não duráveis) ou 90 dias (duráveis).</li>
+        <li><strong>Exceções:</strong> dê um prazo diferente por produto, variante/SKU, tag, coleção, tag do pedido ou canal. Use as datas para campanhas — ex.: coleção “Natal”, pedidos de 01/11 a 24/12, prazo de 30 dias.</li>
+        <li><strong>Exclusões:</strong> itens que não aceitam troca voluntária (ex.: tag <code>final-sale</code>). Arrependimento e defeito continuam valendo.</li>
+        <li><strong>Condições:</strong> exija etiqueta, acessórios e embalagem — o cliente confirma antes de enviar.</li>
+      </ul>
+
+      <h3 class="title-small">Motivos</h3>
+      <p class="body-medium">
+        Cada motivo tem um tipo, os resultados permitidos, se exige foto, se passa por análise humana, quem paga o frete e perguntas extras
+        (uma por linha — o cliente responde ao escolher o motivo). Motivos legais têm itens travados <%= icon "lock", class: "msr--sm" %>.
+      </p>
+
+      <h3 class="title-small">Resultados e financeiro</h3>
+      <ul class="help-list">
+        <li><strong>Aprovação automática:</strong> com limite de valor e detecção de abuso (X solicitações em Y dias do mesmo e-mail).</li>
+        <li><strong>Quando liberar:</strong> na aprovação ou só após conferir o produto.</li>
+        <li><strong>Diferença de preço:</strong> compare pelo preço pago ou atual. Nova peça mais cara: cobre o complemento (o cliente recebe a fatura da Shopify) ou absorva. Mais barata: devolva, vire crédito ou não devolva.</li>
+        <li><strong>Estoque:</strong> reserve a nova peça ao abrir, ao aprovar ou após conferir, com expiração em horas.</li>
+        <li><strong>Crédito:</strong> cupom de uso único, vale-presente ou crédito na conta do cliente; validade, vínculo ao cliente e se acumula com descontos.</li>
+        <li><strong>Reembolso:</strong> se devolve o frete da compra quando o pedido inteiro volta (sempre feito no arrependimento).</li>
+      </ul>
+
+      <h3 class="title-small">Frete reverso</h3>
+      <ul class="help-list">
+        <li><strong>Formas de envio:</strong> agência dos Correios, coleta, ponto de entrega ou loja física (com endereços).</li>
+        <li><strong>Quem paga:</strong> definido por motivo; a primeira troca pode ser grátis e pedidos acima de um valor também. Quando o cliente paga, o valor é descontado do crédito/reembolso ou somado ao complemento.</li>
+        <li><strong>Serviço por CEP e peso:</strong> faixas que escolhem PAC, SEDEX ou e-Sedex reverso.</li>
+      </ul>
+
+      <h3 class="title-small">Comunicação</h3>
+      <p class="body-medium">Canais (e-mail, WhatsApp, página de acompanhamento), domínio de envio, prazos prometidos e os textos das 7 etapas.</p>
+    </section>
+
+    <section id="correios" class="card">
+      <h2 class="title-medium card__title"><%= icon "badge" %> Contrato dos Correios</h2>
+      <p class="body-medium">Para gerar os códigos de postagem reversa automaticamente, a loja precisa de um contrato com os Correios com logística reversa habilitada.</p>
+      <ol class="help-steps">
+        <li>Acesse o <strong>Meu Correios</strong> com o usuário do contrato e vá em <em>Gestão de acesso a API's</em>.</li>
+        <li>Gere o <strong>código de acesso</strong> e anote o <strong>usuário (idCorreios)</strong>.</li>
+        <li>Tenha em mãos o <strong>número do contrato</strong>, o <strong>cartão de postagem</strong> e o <strong>código administrativo</strong> (estão no contrato ou com o gerente comercial).</li>
+        <li>Em <%= link_to "Frete reverso", shipping_exchange_config_path, class: "strong-link" %>, preencha tudo, o endereço para onde o produto volta e o pacote padrão.</li>
+        <li>Salve e clique em <strong>Testar conexão</strong>. Se der certo, ligue <em>Usar integração</em>.</li>
+      </ol>
+      <p class="body-small muted">Sem contrato? Escolha “Instruções manuais / outra transportadora”, escreva as instruções e informe os códigos na tela da solicitação.</p>
+    </section>
+
+    <section id="emails" class="card">
+      <h2 class="title-medium card__title"><%= icon "forum" %> E-mails e WhatsApp</h2>
+      <ol class="help-steps">
+        <li>Em <%= link_to "Comunicação", email_templates_exchange_config_path, class: "strong-link" %>, cadastre o domínio (ex.: <code>sualoja.com.br</code>).</li>
+        <li>Crie no DNS do domínio os <strong>3 registros CNAME</strong> mostrados na tela (no Registro.br, Cloudflare, GoDaddy etc.).</li>
+        <li>Clique em <strong>Verificar agora</strong>. A propagação pode levar algumas horas.</li>
+        <li>Defina o nome do remetente, o endereço (ex.: <code>trocas@sualoja.com.br</code>) e para onde vão as respostas.</li>
+        <li>Edite os textos de cada etapa. As variáveis entre chaves são trocadas pelos dados reais — ex.: <code>{{customer_name}}</code>, <code>{{tracking_url}}</code>, <code>{{return_code}}</code>.</li>
+      </ol>
+      <p class="body-medium"><strong>WhatsApp:</strong> usa a instância Z-API da loja. Ligue o canal e ajuste os textos; o celular é pedido ao cliente na solicitação.</p>
+    </section>
+
+    <section id="reembolsos" class="card">
+      <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Reembolsos e créditos</h2>
+      <ul class="help-list">
+        <li><strong>Cartão:</strong> estornado automaticamente pela Shopify, só dos itens devolvidos.</li>
+        <li><strong>Pix e boleto:</strong> o cliente informa a chave Pix; o sistema registra o reembolso como <em>pendente</em>. Faça o pagamento e mude o status para <em>concluído</em> — o cliente é avisado.</li>
+        <li><strong>Falhou na Shopify?</strong> O reembolso aparece como <em>falhou</em> com o motivo; resolva na Shopify e atualize o status.</li>
+        <li><strong>Crédito:</strong> o código aparece na solicitação e vai para o cliente no e-mail de aprovação (<code>{{coupon_code}}</code>).</li>
+      </ul>
+    </section>
+
+    <section id="lei" class="card card--primary">
+      <h2 class="title-medium card__title"><%= icon "gavel" %> O que a lei exige (e o sistema já garante)</h2>
+      <ul class="help-list">
+        <li><strong>Arrependimento (CDC art. 49):</strong> compra online pode ser desfeita em 7 dias da entrega, sem justificativa, com devolução integral — inclusive frete — e pelo próprio canal digital.</li>
+        <li><strong>Vício do produto (CDC art. 18):</strong> fluxo próprio de análise; troca, reembolso ou abatimento; frete por conta da loja.</li>
+        <li><strong>Troca por tamanho, cor ou gosto:</strong> é política da loja — você define prazos, condições e quem paga o frete.</li>
+      </ul>
+    </section>
+
+    <section id="shopify" class="card">
+      <h2 class="title-medium card__title"><%= icon "storefront" %> Permissões da Shopify</h2>
+      <p class="body-medium">O token do app da loja precisa destes acessos:</p>
+      <div class="chip-row">
+        <% %w[read_orders read_products read_customers write_discounts write_draft_orders write_orders write_gift_cards write_store_credit_account_transactions].each do |scope| %>
+          <code class="assist-chip assist-chip--small"><%= scope %></code>
+        <% end %>
+      </div>
+      <p class="body-small muted">Sem algum deles, a etapa correspondente falha e o erro aparece no histórico da solicitação.</p>
+    </section>
+
+    <section id="duvidas" class="card">
+      <h2 class="title-medium card__title"><%= icon "quiz" %> Dúvidas frequentes</h2>
+      <details class="disclosure"><summary class="title-small">O cliente diz que o pedido não é encontrado.</summary><p class="body-medium">Ele precisa usar o mesmo e-mail da compra e o número do pedido (ex.: #1001). Depois de 10 tentativas em 5 minutos a busca é bloqueada temporariamente.</p></details>
+      <details class="disclosure"><summary class="title-small">Um item aparece como “Prazo encerrado”.</summary><p class="body-medium">Nenhum motivo está dentro do prazo para ele. Confira as exceções em Prazos e elegibilidade.</p></details>
+      <details class="disclosure"><summary class="title-small">“Outro tamanho/cor” não aparece.</summary><p class="body-medium">Só aparece quando o produto tem outra variante disponível para venda na Shopify.</p></details>
+      <details class="disclosure"><summary class="title-small">Os e-mails não estão chegando.</summary><p class="body-medium">Confira se o domínio está “Verificado” em Comunicação e se o canal E-mail está ligado.</p></details>
+      <details class="disclosure"><summary class="title-small">O código dos Correios não foi gerado.</summary><p class="body-medium">Veja o erro no histórico da solicitação, clique em Testar conexão no Frete reverso e, se preciso, informe o código manualmente.</p></details>
+    </section>
+  </article>
+</div>

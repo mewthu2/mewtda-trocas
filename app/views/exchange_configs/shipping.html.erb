@@ -1,0 +1,115 @@
+<% content_for :title, "Frete reverso" %>
+<% c = @exchange_config %>
+<% contract = c.carrier_contract %>
+
+<%= render "tabs" %>
+
+<%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, html: { autocomplete: "off" } do |f| %>
+  <div class="grid grid--detail">
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "move_to_inbox" %> Como o cliente envia de volta</h2>
+        <%= m3_checkbox_group f, :return_modes, ExchangeConfig::RETURN_MODES %>
+        <%= m3_field f, :store_drop_off_addresses, "Endereços das lojas físicas (uma por linha)", as: :text_area, rows: 3,
+                     hint: "Obrigatório se “Entrega em loja física” estiver marcado." %>
+      </section>
+
+      <%= f.fields_for :carrier_contract do |cf| %>
+        <section class="card">
+          <div class="card__title-row">
+            <h2 class="title-medium card__title"><%= icon "badge" %> Contrato dos Correios</h2>
+            <% if contract.persisted? && contract.correios? %>
+              <%= button_tag type: "submit", form: "test-correios", class: "btn btn--outlined btn--small" do %><%= icon "wifi_tethering" %> Testar conexão<% end %>
+            <% end %>
+          </div>
+          <%= m3_switch cf, :active, "Usar integração", "Gera o código de postagem reversa automaticamente na aprovação." %>
+          <%= m3_select cf, :carrier, "Transportadora", CarrierContract::CARRIERS.invert.to_a %>
+
+          <h3 class="title-small">Acesso à API (Meu Correios → Gestão de acesso a API's)</h3>
+          <div class="field-row">
+            <%= m3_field cf, :username, "Usuário (idCorreios)" %>
+            <%= m3_field cf, :access_code, "Código de acesso à API", as: :password_field, value: "",
+                         hint: contract.masked_access_code ? "Salvo: #{contract.masked_access_code}. Deixe em branco para manter." : nil %>
+          </div>
+          <div class="field-row">
+            <%= m3_field cf, :contract_number, "Número do contrato" %>
+            <%= m3_field cf, :posting_card, "Cartão de postagem" %>
+            <%= m3_field cf, :administrative_code, "Código administrativo" %>
+          </div>
+          <div class="field-row">
+            <%= m3_select cf, :default_service, "Serviço padrão", CarrierContract::SERVICES.invert.to_a %>
+            <%= m3_field cf, :authorization_days, "Validade da autorização (dias)", as: :number_field, min: 1 %>
+          </div>
+
+          <h3 class="title-small">Endereço de destino (para onde o produto volta)</h3>
+          <div class="field-row">
+            <%= m3_field cf, :sender_name, "Nome / razão social" %>
+            <%= m3_field cf, :sender_document, "CNPJ" %>
+          </div>
+          <div class="field-row">
+            <%= m3_field cf, :sender_zip, "CEP", inputmode: "numeric" %>
+            <%= m3_field cf, :sender_street, "Logradouro" %>
+            <%= m3_field cf, :sender_number, "Número" %>
+          </div>
+          <div class="field-row">
+            <%= m3_field cf, :sender_complement, "Complemento" %>
+            <%= m3_field cf, :sender_district, "Bairro" %>
+            <%= m3_field cf, :sender_city, "Cidade" %>
+            <%= m3_select cf, :sender_state, "UF", [ [ "", "" ] ] + CarrierContract::STATES.map { |s| [ s, s ] } %>
+          </div>
+          <div class="field-row">
+            <%= m3_field cf, :sender_phone, "Telefone" %>
+            <%= m3_field cf, :sender_email, "E-mail", as: :email_field %>
+          </div>
+
+          <h3 class="title-small">Pacote padrão</h3>
+          <div class="field-row">
+            <%= m3_field cf, :package_weight_g, "Peso mínimo (g)", as: :number_field, min: 1,
+                         hint: "Usado quando a Shopify não tem o peso do produto." %>
+            <%= m3_field cf, :package_length_cm, "Comprimento (cm)", as: :number_field, min: 1 %>
+            <%= m3_field cf, :package_width_cm, "Largura (cm)", as: :number_field, min: 1 %>
+            <%= m3_field cf, :package_height_cm, "Altura (cm)", as: :number_field, min: 1 %>
+          </div>
+
+          <%= m3_field cf, :manual_instructions, "Instruções de envio (sem integração / outra transportadora)", as: :text_area, rows: 3,
+                       hint: "Mostradas ao cliente na página de acompanhamento." %>
+        </section>
+      <% end %>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "paid" %> Quem paga o frete</h2>
+        <p class="body-small muted">
+          Por motivo, em <%= link_to "Motivos", reasons_exchange_config_path, class: "strong-link" %>.
+          Arrependimento, defeito e erro no pedido: sempre a loja. Exceções a favor do cliente:
+        </p>
+        <%= m3_switch f, :free_shipping_first_attempt, "Primeira troca do pedido grátis" %>
+        <%= m3_field f, :free_shipping_above, "Grátis para pedidos a partir de (R$)", as: :number_field, step: "0.01", min: 0,
+                     hint: "Vazio = sem faixa de valor." %>
+        <%= m3_field f, :customer_shipping_flat_fee, "Taxa fixa cobrada do cliente (R$)", as: :number_field, step: "0.01", min: 0,
+                     hint: "Vazio = cotação dos Correios. É descontada do crédito/reembolso ou somada ao complemento." %>
+      </section>
+
+      <section class="card" data-controller="nested-form">
+        <h2 class="title-medium card__title"><%= icon "alt_route" %> Serviço por CEP e peso</h2>
+        <p class="body-small muted">A primeira faixa que servir define o serviço. Sem faixa, usa o serviço padrão do contrato.</p>
+        <div class="stack stack--tight" data-nested-form-target="list">
+          <%= f.fields_for :shipping_rules do |sf| %>
+            <%= render "shipping_rule_fields", f: sf %>
+          <% end %>
+        </div>
+        <template data-nested-form-target="template">
+          <%= f.fields_for :shipping_rules, ShippingRule.new(service_code: "03301"), child_index: "NEW_RECORD" do |sf| %>
+            <%= render "shipping_rule_fields", f: sf %>
+          <% end %>
+        </template>
+        <div><button type="button" class="btn btn--tonal btn--small" data-action="nested-form#add"><%= icon "add" %> Adicionar faixa</button></div>
+      </section>
+    </div>
+  </div>
+
+  <%= render "save", section: "shipping" %>
+<% end %>
+
+<%= form_with url: test_correios_exchange_config_path, method: :post, id: "test-correios" do %><% end %>

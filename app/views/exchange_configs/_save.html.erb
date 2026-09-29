@@ -1,0 +1,6 @@
+<%= hidden_field_tag :return_to, section %>
+<div class="sticky-actions">
+  <%= button_tag type: "submit", class: "btn btn--filled", data: { turbo_submits_with: "Salvando…" } do %>
+    <%= icon "save" %> Salvar configuração
+  <% end %>
+</div>

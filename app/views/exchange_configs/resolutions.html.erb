@@ -1,0 +1,69 @@
+<% content_for :title, "Resultados e financeiro" %>
+<% c = @exchange_config %>
+
+<%= render "tabs" %>
+
+<%= form_with model: c, url: exchange_config_path, method: :patch, scope: :exchange_config, html: { autocomplete: "off" } do |f| %>
+  <div class="grid grid--detail">
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "verified" %> Aprovação</h2>
+        <%= m3_switch f, :auto_approve, "Aprovação automática para casos simples",
+                      "Aprova na hora quando o motivo não exige análise, não há foto, o valor está no limite e não há suspeita de abuso." %>
+        <div class="field-row">
+          <%= m3_field f, :auto_approve_max_value, "Valor máximo para aprovar sozinho (R$)", as: :number_field, step: "0.01", min: 0,
+                       hint: "Vazio = sem limite." %>
+          <%= m3_select f, :resolve_on, "Liberar crédito/reembolso/nova peça", ExchangeConfig::RESOLVE_ON.invert.to_a %>
+        </div>
+        <div class="field-row">
+          <%= m3_field f, :abuse_max_requests, "Suspeita de abuso a partir de (solicitações)", as: :number_field, min: 1 %>
+          <%= m3_field f, :abuse_window_days, "…nos últimos (dias)", as: :number_field, min: 1 %>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "compare_arrows" %> Diferença de preço</h2>
+        <p class="body-small muted">Quando o cliente troca por outro tamanho/cor com preço diferente.</p>
+        <%= m3_select f, :price_basis, "Comparar usando o", ExchangeConfig::PRICE_BASES.invert.to_a %>
+        <div class="field-row">
+          <%= m3_select f, :higher_price_action, "Nova peça mais cara", ExchangeConfig::HIGHER_PRICE_ACTIONS.invert.to_a,
+                        hint: "Cobrança: o cliente recebe a fatura da Shopify para pagar a diferença." %>
+          <%= m3_select f, :lower_price_action, "Nova peça mais barata", ExchangeConfig::LOWER_PRICE_ACTIONS.invert.to_a %>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "inventory_2" %> Estoque da nova peça</h2>
+        <div class="field-row">
+          <%= m3_select f, :reserve_stock_on, "Reservar estoque", ExchangeConfig::RESERVE_STOCK_ON.invert.to_a,
+                        hint: "A reserva é feita num pedido rascunho da Shopify." %>
+          <%= m3_field f, :reserve_hours, "Expira em (horas)", as: :number_field, min: 1 %>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "redeem" %> Crédito na loja</h2>
+        <%= m3_select f, :credit_type, "Forma do crédito", ExchangeConfig::CREDIT_TYPES.invert.to_a,
+                      hint: "Vale-presente e crédito na conta permitem usar o valor aos poucos; o cupom é de uso único." %>
+        <%= m3_field f, :coupon_validity_days, "Validade (dias)", as: :number_field, min: 1 %>
+        <%= m3_switch f, :credit_link_customer, "Vincular ao cliente", "Só o cliente da solicitação consegue usar." %>
+        <%= m3_switch f, :credit_combines_with_discounts, "Acumular com outros descontos", "Vale para o cupom." %>
+      </section>
+
+      <section class="card">
+        <h2 class="title-medium card__title"><%= icon "currency_exchange" %> Reembolso</h2>
+        <p class="body-small muted">
+          Cartão: estornado pela Shopify na forma de pagamento original, por item.
+          Pix e boleto: a solicitação registra a chave Pix do cliente e a equipe acompanha o pagamento na tela da solicitação.
+        </p>
+        <%= m3_switch f, :refund_original_shipping, "Devolver o frete da compra",
+                      "Quando o pedido inteiro é devolvido. No arrependimento isso é sempre feito (exigência legal)." %>
+        <%= m3_field f, :refund_sla_days, "Prazo prometido para o reembolso (dias)", as: :number_field, min: 0 %>
+      </section>
+    </div>
+  </div>
+
+  <%= render "save", section: "resolutions" %>
+<% end %>

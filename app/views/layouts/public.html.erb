@@ -13,7 +13,23 @@
     <main class="public__main">
       <%= yield %>
     </main>
-    <footer class="public__footer">Central de trocas e devoluções</footer>
+    <footer class="public__footer">
+      <% if @config && (@config.support_email.present? || @config.support_whatsapp.present?) %>
+        <div class="public__support">
+          <span class="title-small"><%= icon "support_agent" %> Dúvidas? Fale com <%= @config.company_name.presence || "a loja" %></span>
+          <span class="public__support-links">
+            <% if @config.support_whatsapp_url %>
+              <%= link_to @config.support_whatsapp_url, target: "_blank", rel: "noopener" do %><%= icon "chat" %> WhatsApp<% end %>
+            <% end %>
+            <% if @config.support_email.present? %>
+              <%= mail_to @config.support_email do %><%= icon "mail" %> <%= @config.support_email %><% end %>
+            <% end %>
+          </span>
+          <% if @config.support_hours.present? %><span><%= @config.support_hours %></span><% end %>
+        </div>
+      <% end %>
+      <div class="public__powered">Trocas e devoluções por <%= image_tag "quero-trocar-mark.svg", alt: "", width: 16, height: 16 %> <strong>Quero Trocar</strong> by Mewtda</div>
+    </footer>
     <%= render "shared/snackbar" %>
   </body>
 </html>

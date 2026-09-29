@@ -1,13 +1,13 @@
 module Public
   # Fluxo do cliente final: busca o pedido (número + e-mail), escolhe itens,
-  # tipo (troca/devolução) e motivo, e envia a solicitação.
+  # motivo, resultado e forma de envio, e acompanha a solicitação depois.
   class ExchangesController < ApplicationController
     skip_before_action :authenticate_user!, :block_affiliates!
 
     layout "public"
 
     before_action :set_config
-    before_action :require_active_config!
+    before_action :require_active_config!, except: :tracking
 
     def new; end
 
@@ -24,34 +24,31 @@ module Public
 
       prepare_lookup
       @customer_name = params[:customer_name]
-      selected_items = build_selected_items
-
-      if selected_items.empty?
-        flash.now[:alert] = "Selecione ao menos um item e informe o motivo."
-        return render :lookup, status: :unprocessable_entity
-      end
-
-      exchange_request = ActiveRecord::Base.transaction do
-        request = @config.client.exchange_requests.create!(
-          shopify_order_id: @order[:id], shopify_order_number: @order[:number],
-          customer_email: params[:email], customer_name: params[:customer_name]
-        )
-        selected_items.each { |item| request.exchange_request_items.create!(item) }
-        request
-      end
-
-      SendExchangeEmailJob.perform_later(exchange_request_id: exchange_request.id, kind: "requested")
-      NotifyExchangeRequestJob.perform_later(exchange_request_id: exchange_request.id)
+      creator = Exchange::CreateRequest.new(config: @config, order: @order, policy: @policy, params: request_params)
+      @exchange_request = creator.call
       render :confirmation
+    rescue Exchange::CreateRequest::Invalid => e
+      flash.now[:alert] = e.message
+      render :lookup, status: :unprocessable_entity
     rescue ActiveRecord::RecordInvalid => e
       flash.now[:alert] = "Não foi possível enviar: #{e.record.errors.full_messages.to_sentence}"
       render :lookup, status: :unprocessable_entity
     end
 
+    # Página de acompanhamento (link nos e-mails/WhatsApp).
+    def tracking
+      return render(:unavailable, status: :not_found) unless @config&.tracking_page_enabled?
+
+      @exchange_request = @config.client.exchange_requests.includes(:exchange_request_items, :exchange_events)
+                                 .find_by(public_code: params[:code].to_s.upcase)
+      render :unavailable, status: :not_found unless @exchange_request
+    end
+
     private
 
     def set_config
-      @config = ExchangeConfig.find_by(slug: params[:token])
+      @config = ExchangeConfig.includes(:exchange_reasons, :exchange_rules, :shipping_rules, :carrier_contract)
+                              .find_by(slug: params[:token])
     end
 
     def require_active_config!
@@ -59,9 +56,24 @@ module Public
     end
 
     def prepare_lookup
-      @eligibility = Exchange::EligibilityCalculator.new(@config).call(@order)
+      @policy = Exchange::Policy.new(@config, @order, already_requested: already_requested)
       @order_number = params[:order_number]
       @email = params[:email]
+    end
+
+    def already_requested
+      @config.client.exchange_requests.where(shopify_order_id: @order[:id]).where.not(status: :rejected)
+             .joins(:exchange_request_items).group("exchange_request_items.shopify_line_item_id")
+             .sum("exchange_request_items.quantity")
+    end
+
+    def request_params
+      params.permit(:email, :customer_name, :customer_phone, :customer_zip, :return_mode, :pix_key,
+                    items: {}).to_h.with_indifferent_access.tap do |p|
+        p[:items] = params.fetch(:items, {}).to_unsafe_h.transform_values do |raw|
+          raw.to_h.merge("photo" => raw["photo"])
+        end
+      end
     end
 
     def render_order_not_found
@@ -77,23 +89,6 @@ module Public
       end
 
       Shopify::FindOrderForExchange.call(client: @config.client, order_number: params[:order_number], email: params[:email])
-    end
-
-    def build_selected_items
-      return [] if %i[return_and_exchange exchange_only].exclude?(@eligibility)
-
-      allowed_kinds = @eligibility == :return_and_exchange ? %w[troca devolucao] : %w[troca]
-
-      params.fetch(:items, {}).to_unsafe_h.values.filter_map do |raw|
-        next unless raw["selected"] == "1"
-
-        source = @order[:items][raw["index"].to_i]
-        next unless source
-        next unless allowed_kinds.include?(raw["kind"])
-
-        quantity = raw["quantity"].to_i.clamp(1, source[:quantity].clamp(1, nil))
-        source.merge(quantity: quantity, kind: raw["kind"], reason: raw["reason"], photo: raw["photo"].presence)
-      end
     end
   end
 end

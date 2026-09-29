@@ -17,7 +17,8 @@ class SendExchangeEmailJobTest < ActiveSupport::TestCase
   ensure
     Ses::SendEmailService.define_method(:ses, original)
 
-    assert_equal "naoresponda@loja.com", fake_ses.sent[:from_email_address]
+    assert_equal "Loja Teste <naoresponda@loja.com>", fake_ses.sent[:from_email_address]
+    assert_equal "Sua solicitação foi aprovada!", fake_ses.sent.dig(:content, :simple, :subject, :data)
     html = fake_ses.sent.dig(:content, :simple, :body, :html, :data)
     assert_includes html, "RECXYZ"
     assert_includes html, "Maria"

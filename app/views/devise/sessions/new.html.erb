@@ -1,8 +1,8 @@
 <div class="auth-card">
   <div class="auth-card__brand">
-    <span class="brand__mark brand__mark--lg"><span class="msr">sync_alt</span></span>
-    <h1 class="headline-small">Mewtda <strong>Trocas</strong></h1>
-    <p class="body-medium muted">Entre com o mesmo acesso do painel Mewtda</p>
+    <h1 class="visually-hidden">Quero Trocar</h1>
+    <%= render "shared/brand", size: :lg %>
+    <p class="body-medium muted">Central de trocas e devoluções da sua loja</p>
   </div>
 
   <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "stack stack--tight" }) do |f| %>

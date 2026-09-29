@@ -23,7 +23,7 @@ class ExchangeEmailRenderer
   private
 
   def blob_url(attachment)
-    return unless attachment.attached?
+    return unless attachment&.attached?
 
     Rails.application.routes.url_helpers.rails_blob_url(attachment, host: ENV.fetch("APP_HOST", "localhost:3000"),
                                                                     protocol: Rails.env.production? ? "https" : "http")

@@ -12,83 +12,69 @@
     <%= link_to public_exchange_path(@config.slug), class: "btn btn--text" do %><%= icon "arrow_back" %> Outro pedido<% end %>
   </div>
 
-  <% case @eligibility
+  <% case @policy.status
      when :not_fulfilled %>
     <div class="banner banner--info"><%= icon "local_shipping" %><div>Esse pedido ainda não foi enviado. Assim que ele sair para entrega você poderá solicitar troca ou devolução aqui.</div></div>
   <% when :cancelled %>
     <div class="banner banner--error"><%= icon "cancel" %><div>Esse pedido foi cancelado e não pode ter troca ou devolução.</div></div>
+  <% when :expired %>
+    <div class="banner banner--warning"><%= icon "schedule" %><div>Os prazos de troca e devolução deste pedido já terminaram (ou todos os itens já foram solicitados). Se o produto tem defeito, fale com a loja.</div></div>
   <% else %>
-    <% if @eligibility == :exchange_only %>
-      <div class="banner banner--warning"><%= icon "schedule" %><div>O prazo de <%= @config.return_window_days %> dias para devolução já passou — ainda dá para pedir <strong>troca</strong>.</div></div>
-    <% end %>
-
     <%= form_with url: public_exchange_path(@config.slug), method: :post, multipart: true, class: "stack" do %>
       <%= hidden_field_tag :order_number, @order_number %>
       <%= hidden_field_tag :email, @email %>
 
       <p class="title-small">Quais itens você quer trocar ou devolver?</p>
 
-      <% @order[:items].each_with_index do |item, index| %>
-        <% sent = params.dig(:items, index.to_s) || {} %>
-        <fieldset class="pick-item" data-controller="pick-item" data-pick-item-defect-value="<%= ExchangeRequestItem::DEFECT_REASON %>">
-          <%= hidden_field_tag "items[#{index}][index]", index %>
-          <label class="pick-item__head">
-            <%= check_box_tag "items[#{index}][selected]", "1", sent["selected"] == "1",
-                              data: { pick_item_target: "toggle", action: "pick-item#toggle" }, id: "item_#{index}_selected" %>
-            <span class="pick-item__check"><%= icon "check" %></span>
-            <span class="pick-item__info">
-              <span class="title-small"><%= item[:product_name] %></span>
-              <span class="body-small muted"><%= [ item[:variant_title].presence, "Qtd. #{item[:quantity]}", brl(item[:price]) ].compact.join(" · ") %></span>
-            </span>
-          </label>
+      <% @policy.items.each do |options| %>
+        <%= render "item", options: options, sent: (params.dig(:items, options.index.to_s) || {}) %>
+      <% end %>
 
-          <div class="pick-item__options" data-pick-item-target="options" <%= "hidden" unless sent["selected"] == "1" %>>
-            <div class="segmented" role="radiogroup" aria-label="Tipo">
-              <label>
-                <%= radio_button_tag "items[#{index}][kind]", "troca", sent["kind"] != "devolucao", id: "item_#{index}_troca" %>
-                <span><%= icon "swap_horiz" %> Troca</span>
+      <div class="field-row">
+        <div class="text-field">
+          <%= text_field_tag :customer_name, @customer_name, placeholder: " ", autocomplete: "name", required: true %>
+          <label for="customer_name">Seu nome</label>
+        </div>
+        <div class="text-field">
+          <%= telephone_field_tag :customer_phone, params[:customer_phone] || @order[:phone], placeholder: " ", autocomplete: "tel" %>
+          <label for="customer_phone">Celular (WhatsApp)</label>
+        </div>
+      </div>
+
+      <% if @config.return_modes.size > 1 || @config.return_modes != [ "loja" ] %>
+        <fieldset class="stack stack--tight">
+          <legend class="title-small">Como você prefere enviar o produto?</legend>
+          <div class="choice-list">
+            <% @config.return_modes.each_with_index do |mode, i| %>
+              <label class="choice">
+                <%= radio_button_tag :return_mode, mode, (params[:return_mode] || @config.return_modes.first) == mode %>
+                <span><%= ExchangeConfig::RETURN_MODES[mode] %></span>
               </label>
-              <% if @eligibility == :return_and_exchange %>
-                <label>
-                  <%= radio_button_tag "items[#{index}][kind]", "devolucao", sent["kind"] == "devolucao", id: "item_#{index}_devolucao" %>
-                  <span><%= icon "undo" %> Devolução</span>
-                </label>
-              <% end %>
-            </div>
-
-            <div class="field-row">
-              <div class="text-field text-field--select">
-                <%= select_tag "items[#{index}][reason]",
-                               options_for_select(ExchangeRequestItem::REASONS.map(&:reverse), sent["reason"]),
-                               include_blank: true, id: "item_#{index}_reason",
-                               data: { pick_item_target: "reason", action: "pick-item#reasonChanged" } %>
-                <label for="item_<%= index %>_reason">Motivo</label>
-              </div>
-              <% if item[:quantity] > 1 %>
-                <div class="text-field text-field--narrow">
-                  <%= number_field_tag "items[#{index}][quantity]", sent["quantity"] || item[:quantity], min: 1, max: item[:quantity],
-                                       placeholder: " ", id: "item_#{index}_quantity" %>
-                  <label for="item_<%= index %>_quantity">Quantidade</label>
-                </div>
-              <% end %>
-            </div>
-
-            <div class="photo-drop" data-pick-item-target="photo" hidden>
-              <label class="btn btn--outlined btn--small">
-                <%= icon "photo_camera" %> <span data-pick-item-target="photoLabel">Enviar foto do defeito</span>
-                <%= file_field_tag "items[#{index}][photo]", accept: "image/*", class: "visually-hidden",
-                                   data: { pick_item_target: "photoInput", action: "pick-item#photoChosen" } %>
-              </label>
-              <span class="body-small muted">Obrigatória para defeito ou avaria.</span>
-            </div>
+            <% end %>
+          </div>
+          <% if @config.return_modes.include?("loja") && @config.store_drop_off_addresses.present? %>
+            <div class="body-small muted"><strong>Lojas:</strong> <%= simple_format(@config.store_drop_off_addresses, {}, wrapper_tag: "span") %></div>
+          <% end %>
+          <div class="text-field">
+            <%= text_field_tag :customer_zip, params[:customer_zip] || @order[:zip], placeholder: " ", inputmode: "numeric", autocomplete: "postal-code" %>
+            <label for="customer_zip">CEP de onde o produto sai</label>
           </div>
         </fieldset>
       <% end %>
 
-      <div class="text-field">
-        <%= text_field_tag :customer_name, @customer_name, placeholder: " ", autocomplete: "name", required: true %>
-        <label for="customer_name">Seu nome</label>
-      </div>
+      <details class="disclosure">
+        <summary class="title-small"><%= icon "pix" %> Pagou com Pix ou boleto?</summary>
+        <div class="text-field">
+          <%= text_field_tag :pix_key, params[:pix_key], placeholder: " " %>
+          <label for="pix_key">Chave Pix para reembolso (se houver)</label>
+          <span class="text-field__supporting">Só é usada se você escolher reembolso.</span>
+        </div>
+      </details>
+
+      <p class="body-small muted">
+        Analisamos em até <%= pluralize(@config.analysis_sla_days, "dia útil", plural: "dias úteis") %>.
+        Reembolsos são feitos em até <%= pluralize(@config.refund_sla_days, "dia útil", plural: "dias úteis") %> após a conferência.
+      </p>
 
       <%= button_tag type: "submit", class: "btn btn--filled btn--accent btn--block", data: { turbo_submits_with: "Enviando…" } do %>
         <%= icon "send" %> Enviar solicitação

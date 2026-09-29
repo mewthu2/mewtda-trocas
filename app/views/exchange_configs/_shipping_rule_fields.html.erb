@@ -1,0 +1,11 @@
+<div class="rule-row" data-nested-row data-new-record="<%= f.object.new_record? %>">
+  <%= f.hidden_field :_destroy %>
+  <div class="rule-row__fields">
+    <%= m3_field f, :zip_start, "CEP de", inputmode: "numeric" %>
+    <%= m3_field f, :zip_end, "CEP até", inputmode: "numeric" %>
+    <%= m3_field f, :max_weight_g, "Peso até (g)", as: :number_field, min: 1 %>
+    <%= m3_select f, :service_code, "Serviço", CarrierContract::SERVICES.invert.to_a %>
+    <%= m3_field f, :position, "Ordem", as: :number_field %>
+  </div>
+  <button type="button" class="icon-button" data-action="nested-form#remove" aria-label="Remover faixa"><%= icon "delete" %></button>
+</div>

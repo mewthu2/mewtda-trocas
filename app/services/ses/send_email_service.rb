@@ -5,13 +5,14 @@ module Ses
       @ses = ses
     end
 
-    # Só envia se o domínio do cliente estiver verificado na SES (configurado
-    # no painel, em Config. de E-mail).
+    # Só envia se o domínio da loja estiver verificado na SES (Configuração >
+    # E-mails, neste app).
     def call(to:, subject:, html_body:)
       return false unless @client.ses_domain_verified?
 
       ses.send_email(
-        from_email_address: "naoresponda@#{@client.email_sending_domain}",
+        from_email_address: @client.email_from_address,
+        reply_to_addresses: [ @client.email_reply_to.presence ].compact,
         destination: { to_addresses: [ to ] },
         content: {
           simple: {

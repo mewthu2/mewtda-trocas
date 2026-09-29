@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <title><%= [ content_for(:title), "Mewtda Trocas" ].compact.join(" · ") %></title>
+    <title><%= [ content_for(:title), "Quero Trocar" ].compact.join(" · ") %></title>
     <%= render "layouts/partials/head" %>
   </head>
 
   <body class="app">
     <header class="top-app-bar">
       <%= link_to authenticated_root_path, class: "brand" do %>
-        <span class="brand__mark"><span class="msr">sync_alt</span></span>
-        <span class="brand__name">Mewtda <strong>Trocas</strong></span>
+        <%= render "shared/brand" %>
       <% end %>
 
       <div class="top-app-bar__actions">
@@ -40,12 +39,13 @@
 
     <nav class="nav-rail" aria-label="Navegação principal">
       <%= nav_item "Solicitações", "inbox", exchange_requests_path, active: controller_name == "exchange_requests" %>
-      <%= nav_item "Configuração", "tune", edit_exchange_config_path, active: controller_name == "exchange_configs" && action_name != "email_templates" && params[:return_to] != "email_templates" %>
-      <%= nav_item "E-mails", "mail", email_templates_exchange_config_path, active: action_name == "email_templates" || params[:return_to] == "email_templates" %>
+      <%= nav_item "Configuração", "tune", edit_exchange_config_path, active: controller_name.in?(%w[exchange_configs email_domains]) %>
+      <%= nav_item "Como usar", "help", help_path, active: controller_name == "help" %>
     </nav>
 
     <main class="main">
       <%= yield %>
+      <%= render "shared/support_footer" %>
     </main>
 
     <%= render "shared/snackbar" %>

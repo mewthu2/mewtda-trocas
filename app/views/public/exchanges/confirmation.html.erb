@@ -1,14 +1,25 @@
 <% content_for :title, "Solicitação enviada" %>
+<% er = @exchange_request %>
 
 <div class="public-card public-card--center">
   <%= render "header" %>
   <%= render "steps", current: 3 %>
 
   <span class="success-mark"><%= icon "check" %></span>
-  <h1 class="headline-small">Solicitação enviada!</h1>
+  <h1 class="headline-small"><%= er.approved? ? "Solicitação aprovada!" : "Solicitação enviada!" %></h1>
   <p class="body-medium muted">
-    Recebemos seu pedido de troca/devolução do pedido <strong><%= @order[:number] %></strong>.
-    Você vai receber as atualizações em <strong><%= params[:email] %></strong>.
+    Pedido <strong><%= er.shopify_order_number %></strong> · protocolo <strong><%= er.public_code %></strong>.<br>
+    <% if er.approved? %>
+      Enviamos as instruções de envio para <strong><%= er.customer_email %></strong>.
+    <% else %>
+      Vamos analisar em até <%= pluralize(@config.analysis_sla_days, "dia útil", plural: "dias úteis") %> e avisar em <strong><%= er.customer_email %></strong>.
+    <% end %>
   </p>
+  <% if er.shipping_payer == "customer" && er.shipping_cost.present? %>
+    <p class="body-small muted">Frete de volta por sua conta: <%= brl er.shipping_cost %> (descontado do crédito/reembolso ou somado à diferença).</p>
+  <% end %>
+  <% if @config.tracking_page_enabled? %>
+    <%= link_to public_exchange_tracking_path(@config.slug, er.public_code), class: "btn btn--filled btn--accent" do %><%= icon "travel_explore" %> Acompanhar solicitação<% end %>
+  <% end %>
   <%= link_to public_exchange_path(@config.slug), class: "btn btn--text" do %><%= icon "add" %> Nova solicitação<% end %>
 </div>

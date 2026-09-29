@@ -1,0 +1,90 @@
+<% item = options.item %>
+<% i = options.index %>
+<fieldset class="pick-item <%= 'is-disabled' unless options.available? %>" data-controller="pick-item">
+  <%= hidden_field_tag "items[#{i}][index]", i, id: nil %>
+  <label class="pick-item__head">
+    <%= check_box_tag "items[#{i}][selected]", "1", sent["selected"] == "1", disabled: !options.available?,
+                      data: { pick_item_target: "toggle", action: "pick-item#toggle" }, id: "item_#{i}_selected" %>
+    <span class="pick-item__check"><%= icon "check" %></span>
+    <span class="pick-item__info">
+      <span class="title-small"><%= item[:product_name] %></span>
+      <span class="body-small muted"><%= [ item[:variant_title].presence, "Qtd. #{options.remaining}", brl(item[:price]) ].compact.join(" · ") %></span>
+      <% unless options.available? %><span class="body-small item-blocked"><%= icon "block", class: "msr--sm" %> <%= options.message %></span><% end %>
+    </span>
+  </label>
+
+  <% if options.available? %>
+    <div class="pick-item__options" data-pick-item-target="options" <%= "hidden" unless sent["selected"] == "1" %>>
+      <div class="field-row">
+        <div class="text-field text-field--select">
+          <%= select_tag "items[#{i}][reason]",
+                         options_for_select(options.reasons.map { |o| [ o[:reason].label, o[:reason].key ] }, sent["reason"]),
+                         include_blank: true, id: "item_#{i}_reason",
+                         data: { pick_item_target: "reason", action: "pick-item#reasonChanged" } %>
+          <label for="item_<%= i %>_reason">Motivo</label>
+        </div>
+        <% if options.remaining > 1 %>
+          <div class="text-field text-field--narrow">
+            <%= number_field_tag "items[#{i}][quantity]", sent["quantity"] || options.remaining, min: 1, max: options.remaining,
+                                 placeholder: " ", id: "item_#{i}_quantity" %>
+            <label for="item_<%= i %>_quantity">Quantidade</label>
+          </div>
+        <% end %>
+      </div>
+
+      <% options.reasons.each do |option| %>
+        <% reason = option[:reason] %>
+        <div class="reason-panel stack stack--tight" data-pick-item-target="panel" data-reason="<%= reason.key %>" hidden>
+          <div class="body-small muted"><%= icon "schedule", class: "msr--sm" %> Prazo para este motivo: mais <%= pluralize(option[:days_left], "dia", plural: "dias") %></div>
+
+          <div class="title-small">O que você prefere?</div>
+          <div class="choice-list" role="radiogroup">
+            <% option[:resolutions].each_with_index do |resolution, ri| %>
+              <label class="choice">
+                <%= radio_button_tag "items[#{i}][resolution]", resolution,
+                                     sent["reason"] == reason.key ? sent["resolution"] == resolution : ri.zero?,
+                                     id: "item_#{i}_#{reason.key}_#{resolution}", data: { action: "pick-item#resolutionChanged" } %>
+                <span><%= ExchangeReason::RESOLUTIONS[resolution] %></span>
+              </label>
+            <% end %>
+          </div>
+
+          <% if option[:resolutions].include?("other_variant") %>
+            <div class="text-field text-field--select" data-pick-item-target="variant" hidden>
+              <%= select_tag "items[#{i}][new_variant_id]",
+                             options_for_select(@policy.other_variants(item).map { |v| [ "#{v[:title]} — #{brl(v[:price])}", v[:id] ] }, sent["new_variant_id"]),
+                             include_blank: true, id: "item_#{i}_#{reason.key}_variant" %>
+              <label for="item_<%= i %>_<%= reason.key %>_variant">Novo tamanho/cor</label>
+            </div>
+          <% end %>
+
+          <% reason.question_list.each_with_index do |question, qi| %>
+            <div class="text-field text-field--textarea">
+              <%= text_area_tag "items[#{i}][answers][#{qi}]", sent.dig("answers", qi.to_s), rows: 2, placeholder: " ", required: true,
+                                id: "item_#{i}_#{reason.key}_q#{qi}" %>
+              <label for="item_<%= i %>_<%= reason.key %>_q<%= qi %>"><%= question %></label>
+            </div>
+          <% end %>
+
+          <% if reason.requires_photo? %>
+            <div class="photo-drop">
+              <label class="btn btn--outlined btn--small">
+                <%= icon "photo_camera" %> <span data-pick-item-target="photoLabel">Enviar foto</span>
+                <%= file_field_tag "items[#{i}][photo]", accept: "image/*", class: "visually-hidden", required: true,
+                                   id: "item_#{i}_#{reason.key}_photo", data: { action: "pick-item#photoChosen" } %>
+              </label>
+              <span class="body-small muted">Obrigatória para este motivo.</span>
+            </div>
+          <% end %>
+
+          <% if reason.voluntary? && @config.conditions.any? %>
+            <label class="checkbox-inline conditions">
+              <%= check_box_tag "items[#{i}][conditions]", "1", sent["conditions"] == "1", required: true, id: "item_#{i}_#{reason.key}_conditions" %>
+              <span>Confirmo que o produto está: <%= @config.conditions.values.map(&:downcase).to_sentence %>.</span>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</fieldset>

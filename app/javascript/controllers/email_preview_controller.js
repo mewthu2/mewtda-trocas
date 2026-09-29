@@ -1,8 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Abas dos 4 e-mails + pré-visualização ao vivo do assunto, corpo e imagem.
+// Abas das mensagens por etapa + pré-visualização ao vivo do assunto, corpo e imagem.
 export default class extends Controller {
-  static targets = ["tab", "panel", "subject", "heading", "body", "image"]
+  static targets = ["tab", "panel", "subject", "heading", "body", "image", "whatsapp"]
   static values = { images: Object, coupon: String }
 
   connect() {
@@ -42,15 +42,21 @@ export default class extends Controller {
       })
     )
 
+    const whatsapp = panel.querySelector("[data-role=whatsapp]")
+    if (this.hasWhatsappTarget) this.whatsappTarget.textContent = whatsapp ? this.fill(whatsapp.value) : ""
+
     const src = this.imagesValue[this.kind]
     this.imageTarget.hidden = !src
     if (src) this.imageTarget.src = src
   }
 
   fill(text) {
-    return text
-      .replaceAll("{{customer_name}}", "Maria Silva")
-      .replaceAll("{{order_number}}", "#1042")
-      .replaceAll("{{coupon_code}}", this.couponValue)
+    const sample = {
+      customer_name: "Maria Silva", order_number: "#1042", request_code: "K7Q2M9XA", coupon_code: this.couponValue,
+      credit_amount: "R$ 189,90", return_code: "1234567890", return_expires_at: "15/10/2026", refund_amount: "R$ 189,90",
+      invoice_url: "https://loja.com/fatura", rejection_reason: "Produto com sinais de uso.",
+      tracking_url: "https://trocas.mewtda.com/troca/loja/acompanhar/K7Q2M9XA", analysis_sla_days: "2", refund_sla_days: "7"
+    }
+    return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, name) => sample[name] ?? match)
   }
 }

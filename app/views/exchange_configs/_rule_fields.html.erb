@@ -1,0 +1,12 @@
+<div class="rule-row" data-nested-row data-new-record="<%= f.object.new_record? %>">
+  <%= f.hidden_field :_destroy %>
+  <div class="rule-row__fields">
+    <%= m3_select f, :rule_type, "Tipo", ExchangeRule::RULE_TYPES.invert.to_a %>
+    <%= m3_select f, :target, "Aplica a", ExchangeRule::TARGETS.invert.to_a %>
+    <%= m3_field f, :value, "Valor", hint: "ID, SKU, tag, nome da coleção ou canal (ex.: web, pos)" %>
+    <%= m3_field f, :days, "Prazo (dias)", as: :number_field, min: 1, hint: "Só para prazo diferente" %>
+    <%= m3_field f, :starts_on, "Pedidos a partir de", as: :date_field %>
+    <%= m3_field f, :ends_on, "Pedidos até", as: :date_field %>
+  </div>
+  <button type="button" class="icon-button" data-action="nested-form#remove" aria-label="Remover regra"><%= icon "delete" %></button>
+</div>
