@@ -32,7 +32,9 @@ Rails.application.routes.draw do
     get :email_templates, path: "comunicacao"
     post :test_correios, path: "frete/testar"
   end
-  resource :email_domain, path: "configuracao/dominio-de-envio", only: %i[create update destroy]
+  resource :email_domain, path: "configuracao/dominio-de-envio", only: %i[create update destroy] do
+    patch :verify, path: "verificar"
+  end
 
   resource :current_client, path: "cliente", only: :update
   get "como-usar", to: "help#show", as: :help

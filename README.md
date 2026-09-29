@@ -15,9 +15,9 @@ Rails 8.1 · Ruby 3.4 · Hotwire (Turbo + Stimulus, importmap) · Propshaft · P
 **Página pública** — `/troca/:slug` (o mesmo slug do painel; `/crm/troca/:slug` redireciona)
 1. Cliente informa nº do pedido + e-mail → busca na Shopify (limite de 10 buscas/5 min por IP).
 2. Escolhe itens, troca ou devolução (devolução só dentro do prazo), motivo, quantidade e foto (obrigatória p/ defeito).
-3. Solicitação criada → e-mail "recebida" (SES).
+3. Solicitação criada → e-mail "recebida" (Mailer To Go) e link de acompanhamento.
 
-Aprovar com itens de troca cria na Shopify um cupom de uso único no valor desses itens.
+Aprovar gera na Shopify um cupom de uso único para os itens em que o cliente escolheu cupom; devoluções de dinheiro são feitas pela equipe, com comprovante.
 
 ## Rodando localmente
 
@@ -37,7 +37,7 @@ O app tem **banco próprio** (Heroku Postgres do `mewtda-troca`), separado do me
 As tabelas têm a mesma estrutura das do painel, mas clientes e usuários são cadastrados aqui.
 
 1. Variáveis: veja `.env.example`. `DATABASE_URL` vem do add-on Heroku Postgres e as `BUCKETEER_*`
-   do add-on Bucketeer; configure também `RAILS_MASTER_KEY` (ou `SECRET_KEY_BASE`) e as da SES.
+   do add-on Bucketeer; as `MAILERTOGO_*` do add-on Mailer To Go; configure também `RAILS_MASTER_KEY` (ou `SECRET_KEY_BASE`).
 2. Migrations rodam automaticamente no deploy (fase `release` do `Procfile`).
 3. Fotos e logos vão para o S3 do Bucketeer (`ACTIVE_STORAGE_SERVICE=amazon`).
 4. O token Shopify de cada loja precisa de `read_orders`, `read_products`, `read_customers` e `write_discounts`.

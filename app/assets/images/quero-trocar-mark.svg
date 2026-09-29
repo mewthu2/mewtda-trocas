@@ -1,13 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Quero Trocar">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 120 1110 1110" role="img" aria-label="Quero Trocar">
   <g stroke-linejoin="round" stroke-linecap="round">
-    <path d="M24 29 L53 14 L64 20 L35 35 Z" fill="#033a26" stroke="#033a26" stroke-width="6"/>
-    <path d="M45 41 L74 26 L93 36 L64 51 Z" fill="#033a26" stroke="#033a26" stroke-width="6"/>
-    <path d="M22 43 L57 60 L57 94 L22 77 Z" fill="#a1d99b" stroke="#a1d99b" stroke-width="5"/>
-    <path d="M65 61 L98 44 L98 68 A40 40 0 0 1 65 100 Z" fill="#033a26" stroke="#033a26" stroke-width="5"/>
-    <path d="M26 64 Q30 92 62 97" fill="none" stroke="#ffffff" stroke-width="22"/>
-    <path d="M12 72 L27 57 L41 71" fill="none" stroke="#ffffff" stroke-width="22"/>
-    <path d="M26 64 Q30 92 62 97" fill="none" stroke="#033a26" stroke-width="12"/>
-    <path d="M12 72 L27 57 L41 71" fill="none" stroke="#033a26" stroke-width="12"/>
-    <path d="M60 97 L66 97" fill="none" stroke="#033a26" stroke-width="12"/>
+    <path d="M290 358 L648 176 L812 256 L452 444 Z" fill="#034631" stroke="#034631" stroke-width="44"/>
+    <path d="M522 482 L880 296 L1085 402 L742 592 Z" fill="#034631" stroke="#034631" stroke-width="44"/>
+    <path d="M240 440 L722 652 L722 944 L240 760 Z" fill="#a8e6a3" stroke="#a8e6a3" stroke-width="36"/>
+    <path d="M790 668 L1110 492 L1110 820 L790 1000 Z" fill="#034631" stroke="#034631" stroke-width="40"/>
+    <path d="M760 1080 C 560 1080 390 1010 330 770" fill="none" stroke="#ffffff" stroke-width="240" stroke-linecap="butt"/>
+    <path d="M185 835 L330 690 L475 835" fill="none" stroke="#ffffff" stroke-width="210"/>
+    <path d="M1040 700 C 1040 960 870 1090 700 1090 C 520 1090 360 1000 330 770" fill="none" stroke="#034631" stroke-width="170"/>
+    <path d="M185 835 L330 690 L475 835" fill="none" stroke="#034631" stroke-width="140"/>
   </g>
 </svg>

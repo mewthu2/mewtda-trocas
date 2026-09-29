@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -85,14 +85,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_000003) do
     t.string "zapi_client_token"
     t.string "site_url"
     t.string "email_sending_domain"
-    t.string "ses_verification_status", default: "unverified", null: false
+    t.string "email_domain_status", default: "unverified", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "ses_dkim_tokens", default: [], null: false, array: true
-    t.datetime "ses_verified_at"
+    t.datetime "email_domain_verified_at"
     t.string "email_from_name"
-    t.string "email_from_local", default: "naoresponda", null: false
+    t.string "email_from_local", default: "trocas", null: false
     t.string "email_reply_to"
+    t.text "email_dns_records"
     t.index ["shopify_shop_url"], name: "index_clients_on_shopify_shop_url", unique: true
   end
 

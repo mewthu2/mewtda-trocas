@@ -17,21 +17,33 @@ class Client < ApplicationRecord
     shopify_shop_url.present? && shopify_access_token.present?
   end
 
-  def ses_domain_verified?
-    ses_verification_status == "verified" && email_sending_domain.present?
+  EMAIL_DOMAIN_STATUSES = {
+    "unverified" => "Sem domínio próprio",
+    "pending" => "Aguardando configuração",
+    "verified" => "Verificado"
+  }.freeze
+
+  def email_domain_verified?
+    email_domain_status == "verified" && email_sending_domain.present?
+  end
+
+  # Remetente dos e-mails: o domínio próprio da loja quando verificado no
+  # Mailer To Go; senão, o domínio padrão da Mewtda (MAILERTOGO_DOMAIN).
+  def email_from_domain
+    email_domain_verified? ? email_sending_domain : ENV["MAILERTOGO_DOMAIN"].presence
   end
 
   def email_from_address
-    address = "#{email_from_local.presence || 'naoresponda'}@#{email_sending_domain}"
+    domain = email_from_domain
+    return if domain.blank?
+
+    address = "#{email_from_local.presence || 'trocas'}@#{domain}"
     name = email_from_name.presence || exchange_config&.company_name.presence || self.name
     name.present? ? "#{name.delete('"<>')} <#{address}>" : address
   end
 
-  # Registros CNAME do Easy DKIM que a loja precisa criar no DNS.
-  def dkim_records
-    Array(ses_dkim_tokens).map do |token|
-      { name: "#{token}._domainkey.#{email_sending_domain}", value: "#{token}.dkim.amazonses.com" }
-    end
+  def email_reply_to_address
+    email_reply_to.presence || exchange_config&.support_email.presence
   end
 
   def zapi_configured?

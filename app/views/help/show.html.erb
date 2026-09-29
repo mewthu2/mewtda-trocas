@@ -48,8 +48,8 @@
           <strong>Frete reverso:</strong> em <%= link_to "Frete reverso", shipping_exchange_config_path, class: "strong-link" %>, escolha como o cliente envia o produto de volta e cadastre o contrato dos Correios.
         </li>
         <li>
-          <strong>Domínio de e-mail:</strong> em <%= link_to "Comunicação", email_templates_exchange_config_path, class: "strong-link" %>, cadastre o domínio da loja e crie os 3 registros DNS.
-          Sem isso os e-mails não saem.
+          <strong>E-mails:</strong> já saem com o nome da loja. Para usar o domínio da loja, peça em
+          <%= link_to "Comunicação", email_templates_exchange_config_path, class: "strong-link" %>.
         </li>
         <li>
           <strong>Divulgue o link:</strong> copie o link público em <em>Geral</em> e coloque no site (rodapé, página de trocas e e-mails pós-venda).
@@ -145,10 +145,10 @@
     <section id="emails" class="card">
       <h2 class="title-medium card__title"><%= icon "forum" %> E-mails e WhatsApp</h2>
       <ol class="help-steps">
-        <li>Em <%= link_to "Comunicação", email_templates_exchange_config_path, class: "strong-link" %>, cadastre o domínio (ex.: <code>sualoja.com.br</code>).</li>
-        <li>Crie no DNS do domínio os <strong>3 registros CNAME</strong> mostrados na tela (no Registro.br, Cloudflare, GoDaddy etc.).</li>
-        <li>Clique em <strong>Verificar agora</strong>. A propagação pode levar algumas horas.</li>
-        <li>Defina o nome do remetente, o endereço (ex.: <code>trocas@sualoja.com.br</code>) e para onde vão as respostas.</li>
+        <li>Por padrão, os e-mails já saem pelo domínio da Mewtda com o <strong>nome da loja</strong> como remetente, e as respostas vão para o e-mail de atendimento (aba Geral). Não precisa configurar nada.</li>
+        <li>Para enviar pelo domínio da loja (ex.: <code>trocas@sualoja.com.br</code>), em <%= link_to "Comunicação", email_templates_exchange_config_path, class: "strong-link" %> informe o domínio e clique em <strong>Solicitar domínio</strong>.</li>
+        <li>A equipe Mewtda cadastra o domínio e os <strong>registros DNS</strong> aparecem na mesma tela. Crie-os no DNS (Registro.br, Cloudflare, GoDaddy etc.).</li>
+        <li>Quando a verificação terminar, a equipe marca o domínio como verificado e os e-mails passam a sair por ele.</li>
         <li>Edite os textos de cada etapa. As variáveis entre chaves são trocadas pelos dados reais — ex.: <code>{{customer_name}}</code>, <code>{{tracking_url}}</code>, <code>{{return_code}}</code>.</li>
       </ol>
       <p class="body-medium"><strong>WhatsApp:</strong> usa a instância Z-API da loja. Ligue o canal e ajuste os textos; o celular é pedido ao cliente na solicitação.</p>
@@ -190,7 +190,7 @@
       <details class="disclosure"><summary class="title-small">O cliente diz que o pedido não é encontrado.</summary><p class="body-medium">Ele precisa usar o mesmo e-mail da compra e o número do pedido (ex.: #1001). Depois de 10 tentativas em 5 minutos a busca é bloqueada temporariamente.</p></details>
       <details class="disclosure"><summary class="title-small">Um item aparece como “Prazo encerrado”.</summary><p class="body-medium">Nenhum motivo está dentro do prazo para ele. Confira as exceções em Prazos e elegibilidade.</p></details>
       <details class="disclosure"><summary class="title-small">O cliente quer outro tamanho ou cor.</summary><p class="body-medium">Ele recebe um cupom no valor da peça e faz o novo pedido na loja com ele.</p></details>
-      <details class="disclosure"><summary class="title-small">Os e-mails não estão chegando.</summary><p class="body-medium">Confira se o domínio está “Verificado” em Comunicação e se o canal E-mail está ligado.</p></details>
+      <details class="disclosure"><summary class="title-small">Os e-mails não estão chegando.</summary><p class="body-medium">Confira se o canal E-mail está ligado em Comunicação e o remetente mostrado lá. Peça ao cliente para olhar o spam; se persistir, fale com o suporte.</p></details>
       <details class="disclosure"><summary class="title-small">O código dos Correios não foi gerado.</summary><p class="body-medium">Veja o erro no histórico da solicitação, clique em Testar conexão no Frete reverso e, se preciso, informe o código manualmente.</p></details>
     </section>
   </article>

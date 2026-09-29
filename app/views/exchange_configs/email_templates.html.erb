@@ -32,55 +32,64 @@
   <% end %>
 
   <section class="card">
-    <h2 class="title-medium card__title"><%= icon "alternate_email" %> Domínio de envio dos e-mails</h2>
-    <% unless Ses::DomainIdentity.configured? %>
-      <div class="banner banner--warning"><%= icon "warning" %><div>As credenciais da Amazon SES ainda não foram configuradas no servidor (AWS_SES_ACCESS_KEY_ID / AWS_SES_SECRET_ACCESS_KEY).</div></div>
+    <h2 class="title-medium card__title"><%= icon "alternate_email" %> Remetente dos e-mails</h2>
+    <% if current_client.email_from_address %>
+      <p class="body-small">Os e-mails saem como <strong><%= current_client.email_from_address %></strong><%= " e as respostas vão para #{current_client.email_reply_to_address}" if current_client.email_reply_to_address %>.</p>
+    <% else %>
+      <div class="banner banner--warning"><%= icon "warning" %><div>Nenhum domínio de envio verificado no Mailer To Go ainda — os e-mails não estão sendo enviados.</div></div>
     <% end %>
 
+    <%= form_with model: current_client, url: email_domain_path, method: :patch, scope: :client, class: "stack stack--tight" do |cf| %>
+      <div class="field-row">
+        <%= m3_field cf, :email_from_name, "Nome do remetente", hint: "Padrão: nome da empresa." %>
+        <%= m3_field cf, :email_from_local, "Endereço", hint: "…@#{current_client.email_from_domain || 'dominio'}" %>
+      </div>
+      <%= m3_field cf, :email_reply_to, "Responder para", as: :email_field, hint: "Padrão: e-mail de atendimento (aba Geral)." %>
+      <div class="form-actions form-actions--start">
+        <%= cf.button type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "save" %> Salvar remetente<% end %>
+      </div>
+    <% end %>
+
+    <h3 class="title-small">Domínio próprio da loja (opcional)</h3>
     <% if current_client.email_sending_domain.blank? %>
-      <p class="body-small muted">Cadastre o domínio da loja (ex.: <code>sualoja.com.br</code>). Depois é só criar 3 registros no DNS.</p>
-      <%= form_with url: email_domain_path, method: :post, class: "stack stack--tight" do %>
+      <p class="body-small muted">Sem domínio próprio, os e-mails saem pelo domínio da Mewtda com o nome da loja. Para enviar como <code>trocas@sualoja.com.br</code>, informe o domínio:</p>
+      <%= form_with url: email_domain_path, method: :post, class: "field-row" do %>
         <div class="text-field">
           <%= text_field_tag :domain, nil, placeholder: " ", required: true, id: "email_domain" %>
-          <label for="email_domain">Domínio</label>
+          <label for="email_domain">Domínio (ex.: sualoja.com.br)</label>
         </div>
-        <div><%= button_tag type: "submit", class: "btn btn--filled btn--small" do %><%= icon "add" %> Cadastrar domínio<% end %></div>
+        <div><%= button_tag type: "submit", class: "btn btn--filled btn--small" do %><%= icon "send" %> Solicitar domínio<% end %></div>
       <% end %>
     <% else %>
       <div class="chip-row">
         <span class="assist-chip"><%= icon "language" %><%= current_client.email_sending_domain %></span>
-        <span class="status-chip status-chip--<%= current_client.ses_domain_verified? ? 'completed' : 'pending' %>">
-          <%= current_client.ses_domain_verified? ? "Verificado" : "Aguardando DNS" %>
+        <span class="status-chip status-chip--<%= current_client.email_domain_verified? ? 'completed' : 'pending' %>">
+          <%= Client::EMAIL_DOMAIN_STATUSES[current_client.email_domain_status] %>
         </span>
       </div>
-      <% unless current_client.ses_domain_verified? %>
-        <p class="body-small muted">Crie estes registros <strong>CNAME</strong> no DNS do domínio e clique em Verificar (pode levar algumas horas).</p>
-        <div class="table-wrap">
-          <table class="data-table dns-table">
-            <thead><tr><th>Nome</th><th>Valor</th></tr></thead>
-            <tbody>
-              <% current_client.dkim_records.each do |record| %>
-                <tr><td><code><%= record[:name] %></code></td><td><code><%= record[:value] %></code></td></tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
+      <% if current_client.email_dns_records.present? && !current_client.email_domain_verified? %>
+        <p class="body-small">Crie estes registros no DNS do domínio (Registro.br, Cloudflare etc.):</p>
+        <pre class="dns-records"><%= current_client.email_dns_records %></pre>
+      <% elsif !current_client.email_domain_verified? %>
+        <p class="body-small muted">A equipe Mewtda vai cadastrar o domínio e os registros DNS aparecem aqui.</p>
       <% end %>
 
-      <%= form_with model: current_client, url: email_domain_path, method: :patch, scope: :client, class: "stack stack--tight" do |cf| %>
-        <div class="field-row">
-          <%= m3_field cf, :email_from_name, "Nome do remetente", hint: "Padrão: nome da empresa." %>
-          <%= m3_field cf, :email_from_local, "Endereço", hint: "…@#{current_client.email_sending_domain}" %>
-        </div>
-        <%= m3_field cf, :email_reply_to, "Responder para (opcional)", as: :email_field, hint: "Onde caem as respostas dos clientes." %>
-        <div class="form-actions form-actions--start">
-          <%= cf.button type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "save" %> Salvar remetente<% end %>
-          <%= cf.button type: "submit", name: "check", value: "1", class: "btn btn--outlined btn--small" do %><%= icon "refresh" %> Verificar agora<% end %>
-          <%= link_to email_domain_path, class: "btn btn--text btn--small btn--danger",
-                      data: { turbo_method: :delete, turbo_confirm: "Remover o domínio? Os e-mails param até cadastrar de novo." } do %>
-            <%= icon "delete" %> Remover
-          <% end %>
-        </div>
+      <% if current_user.admin? %>
+        <%= form_with url: verify_email_domain_path, method: :patch, class: "stack stack--tight admin-box" do %>
+          <div class="overline"><%= icon "shield_person", class: "msr--sm" %> Equipe Mewtda</div>
+          <p class="body-small muted">Cadastre <strong><%= current_client.email_sending_domain %></strong> no painel do Mailer To Go (<code>heroku addons:open mailertogo -a mewtda-troca</code>), cole os registros DNS abaixo e marque como verificado quando o painel mostrar <em>Verified</em>.</p>
+          <div class="text-field text-field--textarea">
+            <%= text_area_tag :email_dns_records, current_client.email_dns_records, rows: 4, placeholder: " ", id: "email_dns_records" %>
+            <label for="email_dns_records">Registros DNS (tipo, nome e valor)</label>
+          </div>
+          <label class="checkbox-inline"><%= hidden_field_tag :verified, "0", id: nil %><%= check_box_tag :verified, "1", current_client.email_domain_verified? %> Domínio verificado no Mailer To Go</label>
+          <div><%= button_tag type: "submit", class: "btn btn--tonal btn--small" do %><%= icon "save" %> Salvar<% end %></div>
+        <% end %>
+      <% end %>
+
+      <%= link_to email_domain_path, class: "btn btn--text btn--small btn--danger",
+                  data: { turbo_method: :delete, turbo_confirm: "Remover o domínio próprio? Os e-mails voltam a sair pelo domínio padrão." } do %>
+        <%= icon "delete" %> Remover domínio próprio
       <% end %>
     <% end %>
   </section>
@@ -144,7 +153,7 @@
       <aside class="card email-preview">
         <div class="email-preview__bar"><%= icon "visibility" %> Pré-visualização do e-mail</div>
         <div class="email-preview__meta">
-          <span class="body-small muted">De: <%= current_client.email_sending_domain.present? ? current_client.email_from_address : "naoresponda@sualoja.com.br" %></span>
+          <span class="body-small muted">De: <%= current_client.email_from_address || "Sua Loja <trocas@sualoja.com.br>" %></span>
           <strong class="title-small" data-email-preview-target="subject"></strong>
         </div>
         <div class="email-preview__canvas">

@@ -60,14 +60,19 @@ Rails.application.configure do
   config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost") }
   config.cache_store = :memory_store
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # E-mails pelo SMTP do Mailer To Go (add-on do Heroku).
+  if ENV["MAILERTOGO_SMTP_HOST"].present?
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.raise_delivery_errors = true
+    config.action_mailer.smtp_settings = {
+      address: ENV["MAILERTOGO_SMTP_HOST"],
+      port: ENV.fetch("MAILERTOGO_SMTP_PORT", 587).to_i,
+      user_name: ENV["MAILERTOGO_SMTP_USER"],
+      password: ENV["MAILERTOGO_SMTP_PASSWORD"],
+      authentication: :plain,
+      enable_starttls_auto: true
+    }
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

@@ -140,6 +140,25 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "loja pede domínio próprio e só admin verifica" do
+    sign_in @user
+    post email_domain_path, params: { domain: "https://SuaLoja.com.br/" }
+    assert_equal "sualoja.com.br", @client.reload.email_sending_domain
+    assert_equal "pending", @client.email_domain_status
+
+    patch verify_email_domain_path, params: { verified: "1" }
+    assert_not @client.reload.email_domain_verified?
+
+    admin = create_user(profile_id: Profile::ADMIN, email: "admin@example.com", client: @client)
+    sign_in admin
+    patch verify_email_domain_path, params: { email_dns_records: "CNAME x._domainkey valor", verified: "1" }
+    assert @client.reload.email_domain_verified?
+    assert_equal "CNAME x._domainkey valor", @client.email_dns_records
+
+    get email_templates_exchange_config_path
+    assert_select ".admin-box"
+  end
+
   test "aprova, informa postagem manual, recebe, anexa comprovante e conclui" do
     request = create_request(@client, items: [ { resolution: "refund", price: 90 } ],
                                       refund_method: "pix", refund_details: { "pix_key" => "maria@pix.com" })

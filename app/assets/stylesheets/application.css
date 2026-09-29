@@ -922,7 +922,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); widt
 .reason-card__title { flex: 1 1 420px; }
 .reason-card__actions { display: flex; align-items: center; gap: 4px; }
 .reason-card .chip-row { gap: 24px; }
-.dns-table code { font-size: 12px; word-break: break-all; }
+.dns-records { margin: 0; padding: 12px; border-radius: var(--shape-sm); background: var(--surface-container); font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.admin-box { padding: 12px; border: 1px dashed var(--outline); border-radius: var(--shape-md); }
 .whatsapp-preview { gap: 12px; }
 .whatsapp-preview__bubble {
   justify-self: start; max-width: 100%; padding: 10px 12px; border-radius: 12px 12px 12px 4px;

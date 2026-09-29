@@ -51,9 +51,8 @@ gem "devise"
 # Traduções padrão do Rails em pt-BR (validações, datas, números).
 gem "rails-i18n"
 
-# Integrações herdadas do módulo de trocas do painel.
+# Integrações: Shopify, S3 (Bucketeer) e HTTP (Correios, Z-API).
 gem "shopify_api"
-gem "aws-sdk-sesv2"
 gem "aws-sdk-s3", require: false
 gem "httparty"
 

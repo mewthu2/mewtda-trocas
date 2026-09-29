@@ -37,7 +37,7 @@ module MewtdaTrocas
     config.i18n.default_locale = :"pt-BR"
     config.i18n.available_locales = [ :"pt-BR" ]
 
-    # Jobs leves (e-mail SES e aviso no WhatsApp) rodam no próprio processo,
+    # Jobs leves (e-mail e aviso no WhatsApp) rodam no próprio processo,
     # sem precisar de tabelas de fila nem de um worker separado.
     config.active_job.queue_adapter = :async
     # config.eager_load_paths << Rails.root.join("extras")
